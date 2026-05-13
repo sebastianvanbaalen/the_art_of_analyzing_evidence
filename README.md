@@ -1,21 +1,15 @@
 # The Art of Analyzing Evidence
 
-An interactive seminar on observable implications, certainty and uniqueness,
-fieldwork design, reflexivity, and the ethics of inference — built around a
-fictional qualitative study of rebel dependence on civilian support and rebel
-restraint in war.
+An interactive seminar on observable implications, certainty and uniqueness, fieldwork design, reflexivity, and the ethics of inference, designed for advanced qualitative methods teaching in peace and conflict research and political science.
 
-Designed for small-group work in a graduate methods seminar. Each group works
-through nine stages together, makes choices, gets feedback, and downloads a
-printable summary at the end.
+Students play the role of a researcher conducting a qualitative single-case study of the relationship between rebel dependence on civilian support and rebel restraint towards civilians. They sharpen theoretical mechanisms, develop indicators for the independent and dependent variables, design an interview pool, build a two-person research team and reason about its positionality, interpret field excerpts and archival absences, confront a gender critique of their analysis, and finally weigh an ethical dilemma about sharing their findings with outside actors.
 
-## Run it
+## Get started
 
-Open `index.html` in any modern browser, or visit the live version on GitHub
-Pages once enabled (Settings → Pages → Source: deploy from `main` / root).
+[Launch the seminar &rarr;](https://sebastianvanbaalen.github.io/the_art_of_analyzing_evidence/)
 
-## Credits
+The seminar runs entirely in the browser — no installation required.
 
-Seminar design and content by Sebastian van Baalen. The causal diagram in
-Stage 1 was prototyped with the
-[`causalplot`](https://github.com/sebastianvanbaalen/causalplot) R package.
+## Author
+
+Sebastian van Baalen, Associate Professor of Peace and Conflict Research.
