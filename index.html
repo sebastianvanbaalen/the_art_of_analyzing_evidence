@@ -1,0 +1,2895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Art of Analyzing Evidence</title>
+<style>
+:root {
+  --card: #ffffff;
+  --primary: #1c1c1c;
+  --primary-light: #333333;
+  --accent: #c08030;
+  --accent-light: #d4933a;
+  --success: #2d6e4e;
+  --success-bg: #e8f4ed;
+  --error: #8b2c2c;
+  --error-bg: #fbeaea;
+  --warning-bg: #fdf8f0;
+  --text: #111111;
+  --text-muted: #68645e;
+  --border: #e4e0d8;
+  --border-light: #eeebe4;
+  --shadow: 0 2px 8px rgba(20,20,20,0.07);
+  --shadow-md: 0 4px 20px rgba(20,20,20,0.11);
+  --radius: 8px;
+  --trans: 0.22s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, #f4f2ef 0%, #f2f0ec 60%, #eeecea 100%);
+}
+body {
+  font-family: Georgia, 'Times New Roman', serif;
+  background: transparent;
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.75;
+}
+
+/* Progress bar */
+#progress-container {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 6px rgba(44,40,32,0.07);
+  padding: 10px 24px 8px;
+}
+#progress-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+#progress-track { display: flex; gap: 3px; }
+.ps { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.ps-bar { height: 4px; width: 100%; background: var(--border); border-radius: 2px; transition: background var(--trans); }
+.ps.active .ps-bar { background: var(--primary); }
+.ps.done .ps-bar { background: var(--success); }
+.ps-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 100%;
+}
+.ps.active .ps-label { color: var(--primary); font-weight: 700; }
+.ps.done .ps-label { color: var(--success); }
+
+/* Layout */
+#main-content { max-width: 990px; margin: 0 auto; padding: 96px 24px 88px; }
+#page-footer {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  text-align: center; padding: 6px 24px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: var(--card);
+  border-top: 1px solid var(--border-light);
+}
+
+/* Screens */
+.screen { display: none; }
+.screen.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* Typography */
+h1 { font-size: 2rem; color: var(--text); line-height: 1.2; margin-bottom: 0.5rem; }
+h2 { font-size: 1.45rem; color: var(--text); line-height: 1.3; margin-bottom: 0.75rem; }
+h3 { font-size: 1.1rem; color: var(--text); margin-bottom: 0.5rem; }
+p { margin-bottom: 1rem; }
+p:last-child { margin-bottom: 0; }
+.lead { font-size: 1.08rem; line-height: 1.85; }
+.eyebrow {
+  display: block;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin-bottom: 0.45rem;
+}
+.muted {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* Cards */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+.card-accent  { border-left: 4px solid var(--accent); }
+.card-primary { border-left: 4px solid var(--primary); }
+.card-success { border-left: 4px solid var(--success); background: var(--success-bg); }
+.card-note    { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 16px; font-size: 0.95rem; }
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  font-size: 0.97rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 600;
+  transition: all var(--trans);
+}
+.btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn-primary:hover:not(:disabled) { background: var(--primary-light); border-color: var(--primary-light); }
+.btn-primary:disabled { background: var(--border); border-color: var(--border); color: var(--text-muted); cursor: not-allowed; }
+.btn-accent  { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-accent:hover { background: var(--accent-light); border-color: var(--accent-light); }
+.btn-outline { background: transparent; color: var(--primary); border-color: var(--primary); }
+.btn-outline:hover { background: var(--primary); color: #fff; }
+.btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+
+/* MCQ options */
+.mcq-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 18px;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.94rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--text);
+  transition: all var(--trans);
+  margin-bottom: 10px;
+  line-height: 1.55;
+}
+.mcq-option:hover { border-color: var(--primary); background: #f4f2ef; }
+.mcq-option.selected { border-color: var(--primary); background: #edeae4; }
+.mcq-option.correct { border-color: var(--success); background: var(--success-bg); color: #1a5035; }
+.mcq-option.incorrect { border-color: var(--error); background: var(--error-bg); color: var(--error); }
+.mcq-option.locked { cursor: default; }
+.opt-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 0.78rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  transition: all var(--trans);
+}
+.mcq-option.selected .opt-label { background: var(--primary); color: #fff; }
+.mcq-option.correct .opt-label { background: var(--success); color: #fff; }
+.mcq-option.incorrect .opt-label { background: var(--error); color: #fff; }
+.mcq-explain {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* Indicator picker (used in stages 2 and 6) */
+.ind-list { display: flex; flex-direction: column; gap: 10px; }
+.ind-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.94rem;
+  transition: all var(--trans);
+}
+.ind-item:hover:not(.locked) { border-color: var(--primary); background: #f4f2ef; }
+.ind-item.selected { border-color: var(--primary); background: #edeae4; }
+.ind-item.flagged-good { border-color: var(--success); background: var(--success-bg); color: #1a5035; }
+.ind-item.flagged-bad  { border-color: var(--error);   background: var(--error-bg);   color: var(--error); }
+.ind-item.locked { cursor: default; opacity: 0.85; }
+.ind-bullet {
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  border-radius: 4px;
+  border: 2px solid var(--border);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.85rem;
+  background: var(--card);
+  color: var(--text-muted);
+}
+.ind-item.selected .ind-bullet { background: var(--primary); border-color: var(--primary); color: #fff; }
+.ind-item.flagged-good .ind-bullet { background: var(--success); border-color: var(--success); color: #fff; }
+.ind-item.flagged-bad  .ind-bullet { background: var(--error);   border-color: var(--error);   color: #fff; }
+.ind-body { flex: 1; }
+.ind-feedback {
+  margin-top: 6px;
+  font-size: 0.84rem;
+  font-style: italic;
+  color: var(--text-muted);
+  line-height: 1.5;
+  display: none;
+}
+.ind-item.flagged-bad .ind-feedback,
+.ind-item.flagged-good .ind-feedback { display: block; color: inherit; }
+
+/* Selection counter */
+.sel-counter {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px;
+}
+.sel-count-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+/* Feedback */
+.feedback {
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-top: 16px;
+  display: none;
+  animation: fadeIn 0.25s ease;
+}
+.feedback.vis { display: block; }
+.fb-success { background: var(--success-bg); border: 1px solid #a8d4bc; border-left: 4px solid var(--success); }
+.fb-error   { background: var(--error-bg);   border: 1px solid #e0b0b0; border-left: 4px solid var(--error); }
+.fb-info    { background: var(--warning-bg); border: 1px solid #e0d0a0; border-left: 4px solid var(--accent); }
+.fb-title { font-weight: 700; margin-bottom: 6px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 0.9rem; }
+.fb-success .fb-title { color: var(--success); }
+.fb-error   .fb-title { color: var(--error); }
+.fb-info    .fb-title { color: var(--accent); }
+
+/* Free text */
+.ft-wrap { margin-top: 18px; }
+.ft-label {
+  display: block;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 7px;
+}
+textarea, input[type="text"] {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-family: Georgia, serif;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--card);
+  line-height: 1.65;
+  transition: border-color var(--trans);
+}
+textarea { min-height: 110px; resize: vertical; }
+textarea:focus, input[type="text"]:focus { outline: none; border-color: var(--primary); }
+textarea::placeholder, input::placeholder { color: var(--text-muted); font-style: italic; }
+
+/* Banners */
+.screen-banner {
+  position: relative;
+  border-radius: var(--radius);
+  padding: 44px 44px 36px;
+  margin-bottom: 24px;
+  overflow: hidden;
+  color: #fff;
+  animation: fadeIn 0.4s ease;
+  background-size: cover;
+  background-position: center;
+}
+.screen-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(20,20,20,0.55), rgba(20,20,20,0.7));
+  z-index: 0;
+}
+.screen-banner > * { position: relative; z-index: 1; }
+.bn-kicker {
+  display: block;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 10px;
+}
+.screen-banner h1, .screen-banner h2 { color: #fff; margin-bottom: 8px; }
+.bn-sub {
+  color: rgba(255,255,255,0.82);
+  font-size: 0.97rem;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-style: italic;
+}
+.bn-intro { background-image: url('banner1.png'); }
+.bn-s1    { background-image: url('banner2.png'); }
+.bn-s2    { background-image: url('banner3.png'); }
+.bn-s3    { background-image: url('banner4.png'); }
+.bn-s4    { background-image: url('banner5.png'); }
+.bn-s5    { background-image: url('banner6.png'); }
+.bn-s6    { background-image: url('banner7.png'); }
+.bn-s7    { background-image: url('banner8.png'); }
+.bn-s8    { background-image: url('banner9.png'); }
+.bn-s9    { background-image: url('banner10.png'); }
+
+/* Causal diagram */
+.diagram-wrap {
+  background: #fdfaf3;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin: 18px 0;
+  overflow-x: auto;
+}
+.diagram-wrap img, .diagram-wrap svg { width: 100%; height: auto; display: block; }
+.diagram-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* Editable HTML causal diagram — single diagram, two paths, two mechanism steps each */
+.live-diagram {
+  background: #fdfaf3;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 20px;
+  margin: 18px 0;
+}
+.ld-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 0.35fr 1.4fr 0.3fr 1.4fr 0.35fr 1.4fr;
+  grid-template-rows: 1fr 1fr;
+  align-items: center;
+  gap: 10px 6px;
+}
+.ld-box {
+  background: #efe7d7;
+  border: 1.5px solid #b39669;
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  text-align: center;
+  min-height: 84px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text);
+}
+.ld-iv { grid-column: 1; grid-row: 1 / span 2; }
+.ld-dv { grid-column: 7; grid-row: 1 / span 2; }
+.ld-box.mech {
+  background: #f6f2ea;
+  border: 1.5px dashed #c8b89c;
+  cursor: text;
+  transition: border-color var(--trans), background var(--trans);
+}
+.ld-box.mech:hover  { border-color: var(--accent); }
+.ld-box.mech:focus  { outline: none; border-style: solid; border-color: var(--primary); background: #fffaf0; }
+.ld-box.mech.untouched { color: var(--text-muted); font-style: italic; opacity: 0.85; }
+.ld-arrow {
+  text-align: center;
+  font-size: 1.5rem;
+  color: var(--primary);
+  font-weight: 700;
+  align-self: center;
+}
+.ld-path-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+/* Rating sliders */
+.rating-row { display: grid; grid-template-columns: 1fr; gap: 14px; margin: 14px 0; }
+.rating-block {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+.rating-title {
+  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+  color: var(--primary);
+}
+.rating-sub { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.rating-scale {
+  display: grid;
+  grid-template-columns: 110px 1fr 60px;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.rating-scale label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.rating-scale input[type="range"] { width: 100%; }
+.rating-scale output {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: center;
+}
+
+/* Group member inputs */
+.gm-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.96rem;
+  color: var(--text);
+  transition: border-color var(--trans);
+}
+.gm-input:focus { outline: none; border-color: var(--primary); }
+
+/* Learning outcome list */
+.lo-list { margin: 14px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.lo-list li { display: flex; gap: 14px; align-items: flex-start; line-height: 1.6; }
+.lo-num {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Excerpt cards */
+.excerpt {
+  background: #faf6ee;
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 18px 22px;
+  margin: 14px 0;
+  font-style: italic;
+  font-size: 0.96rem;
+  line-height: 1.7;
+  color: #2a2620;
+}
+.excerpt .ex-source {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  font-style: normal;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Two-column respondent pool (Stage 4) */
+.pool-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 16px 0;
+}
+.pool-col {
+  background: #fcfaf5;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 14px 10px;
+  min-height: 220px;
+}
+.pool-col h4 {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 10px;
+}
+.pool-category {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin: 10px 0 6px;
+}
+.pool-category:first-child { margin-top: 0; }
+.respondent-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  cursor: pointer;
+  margin-bottom: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  transition: all var(--trans);
+}
+.respondent-card:hover:not(.locked) { border-color: var(--primary); background: #f4f0e7; }
+.respondent-card.in-pool {
+  background: #efe7d7;
+  border-color: #b39669;
+}
+.respondent-card.locked { cursor: default; }
+.respondent-card .rc-label { font-weight: 700; color: var(--text); }
+.respondent-card .rc-desc { color: var(--text-muted); font-size: 0.83rem; margin-top: 3px; }
+.respondent-card .ethics-flag { color: var(--error); font-weight: 700; margin-left: 4px; }
+.pool-empty {
+  color: var(--text-muted);
+  font-style: italic;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.88rem;
+  padding: 8px 4px;
+}
+@media (max-width: 760px) {
+  .pool-grid { grid-template-columns: 1fr; }
+}
+
+/* Two-column excerpt layout (image left, content right) */
+.ex-layout {
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  gap: 24px;
+  align-items: start;
+}
+.ex-image-wrap {
+  position: sticky;
+  top: 96px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.ex-image-wrap img { width: 100%; height: auto; display: block; }
+.ex-image-caption {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  background: #faf7f0;
+  border-top: 1px solid var(--border-light);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+@media (max-width: 820px) {
+  .ex-layout { grid-template-columns: 1fr; }
+  .ex-image-wrap { position: static; }
+}
+
+/* Mechanism picker */
+.mech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+.mech-btn {
+  padding: 22px 18px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--trans);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+.mech-btn:hover { border-color: var(--primary); box-shadow: var(--shadow-md); }
+.mech-btn.chosen { border-color: var(--accent); background: var(--warning-bg); }
+.mech-btn .mb-title { font-weight: 700; color: var(--primary); display: block; margin-bottom: 6px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Download section */
+.dl-section {
+  background: #1c1c1c;
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  text-align: center;
+  margin-top: 28px;
+}
+.dl-section h3 { color: #fff; margin-bottom: 8px; }
+.dl-section p { color: rgba(255,255,255,0.78); margin-bottom: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 0.92rem; }
+.btn-dl {
+  background: var(--accent);
+  color: #fff;
+  border: 2px solid var(--accent);
+  padding: 13px 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.97rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 700;
+  transition: all var(--trans);
+}
+.btn-dl:hover { background: var(--accent-light); border-color: var(--accent-light); }
+
+hr.divider { border: none; border-top: 1px solid var(--border-light); margin: 24px 0; }
+
+@media (max-width: 720px) {
+  .mech-grid { grid-template-columns: 1fr; }
+  .ld-row { grid-template-columns: 1fr; }
+  .ld-arrow { transform: rotate(90deg); }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     PROGRESS BAR
+     ============================================================ -->
+<div id="progress-container">
+  <div id="progress-label">Research progress</div>
+  <div id="progress-track">
+    <div class="ps" id="ps1"><div class="ps-bar"></div><div class="ps-label">Theory</div></div>
+    <div class="ps" id="ps2"><div class="ps-bar"></div><div class="ps-label">IV Indicators</div></div>
+    <div class="ps" id="ps3"><div class="ps-bar"></div><div class="ps-label">Rate</div></div>
+    <div class="ps" id="ps4"><div class="ps-bar"></div><div class="ps-label">Evidence</div></div>
+    <div class="ps" id="ps5"><div class="ps-bar"></div><div class="ps-label">DV</div></div>
+    <div class="ps" id="ps6"><div class="ps-bar"></div><div class="ps-label">Mechanisms</div></div>
+    <div class="ps" id="ps7"><div class="ps-bar"></div><div class="ps-label">Positionality</div></div>
+    <div class="ps" id="ps8"><div class="ps-bar"></div><div class="ps-label">Archives &amp; Field</div></div>
+    <div class="ps" id="ps9"><div class="ps-bar"></div><div class="ps-label">Ethics</div></div>
+  </div>
+</div>
+
+<div id="main-content">
+
+  <!-- ========================================================
+       SCREEN 0a: LEARNING OUTCOMES
+       ======================================================== -->
+  <div id="screen-learning-outcomes" class="screen active">
+    <div class="screen-banner bn-intro">
+      <span class="bn-kicker">Advanced Qualitative Methods</span>
+      <h1>The Art of Analyzing Evidence</h1>
+      <p class="bn-sub">A seminar on observable implications, certainty and uniqueness, and the ethics of inference</p>
+    </div>
+
+    <div class="card card-accent">
+      <h3>Learning Outcomes</h3>
+      <p>By the end of this seminar, you should be able to:</p>
+      <ul class="lo-list">
+        <li><span class="lo-num">1</span><span>Move from a general theoretical claim to mechanism-level statements that name actors and their actions or beliefs, and judge observable implications by whether they could confirm or disconfirm specific descriptive or causal inferences.</span></li>
+        <li><span class="lo-num">2</span><span>Treat fieldwork choices — whom you interview, who is doing the interviewing, and what your analysis silently leaves out — as decisions that shape what evidence is even available and what blind spots the work will carry.</span></li>
+        <li><span class="lo-num">3</span><span>Recognise the ethical dimension of choosing data sources, asking interview questions, and sharing findings with outside actors who have their own interests in your findings.</span></li>
+      </ul>
+    </div>
+
+    <div class="card card-note">
+      <strong>How this works.</strong> You will work in small groups and move through nine short stages together. Some questions have right and wrong answers and will give you immediate feedback; others ask you to reflect in free text. There is no time limit — talk before you click. At the end, you can download a summary of your group's answers.
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goTo('screen-group')">Start &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       SCREEN 0b: GROUP NAMES
+       ======================================================== -->
+  <div id="screen-group" class="screen">
+    <div class="screen-banner bn-intro">
+      <span class="bn-kicker">Before you begin</span>
+      <h2>Who is in your group?</h2>
+      <p class="bn-sub">Names will appear on the answer summary you can download at the end.</p>
+    </div>
+    <div class="card">
+      <p class="muted">Enter the names of group members (up to five). Leave blank if fewer.</p>
+      <div style="display:grid; gap:10px; margin-top:14px;">
+        <input type="text" id="gm1" class="gm-input" placeholder="Full name">
+        <input type="text" id="gm2" class="gm-input" placeholder="Full name">
+        <input type="text" id="gm3" class="gm-input" placeholder="Full name">
+        <input type="text" id="gm4" class="gm-input" placeholder="Full name">
+        <input type="text" id="gm5" class="gm-input" placeholder="Full name">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveGroup()">Continue &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       SCREEN 0c: SCENARIO INTRO
+       ======================================================== -->
+  <div id="screen-intro" class="screen">
+    <div class="screen-banner bn-intro">
+      <span class="bn-kicker">The case</span>
+      <h2>Rebel restraint and civilian support</h2>
+      <p class="bn-sub">A qualitative single-case study in a fictional civil war</p>
+    </div>
+    <div class="card card-accent">
+      <h3>Your study</h3>
+      <p>You are conducting a qualitative single-case study on the relationship between a rebel group's <strong>dependence on civilian support</strong> and the degree to which the rebels exercise <strong>restraint</strong> in their interactions with civilians.</p>
+      <p>The theory: when rebel groups are highly dependent on civilian support, they are more likely to exhibit restraint. Two mechanisms are proposed:</p>
+      <ol style="margin:0 0 1rem 1.2rem;">
+        <li><strong>The cost of abuse rises.</strong> Dependence means civilians provide essential resources, shelter, intelligence, and legitimacy; abusing them undermines all of these. Rebels are therefore incentivised to behave well.</li>
+        <li><strong>Information improves.</strong> Dependence gives rebels closer ties to civilians, and therefore better information about who is loyal, neutral, or hostile. With better information, the need for indiscriminate violence decreases.</li>
+      </ol>
+      <p>You have already chosen a case. Your job in this seminar is to develop the <em>observable implications</em> of this theory — the things you would actually look for in the field or in the archives — and to consider how to find evidence of those indicators.</p>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goTo('screen-s1a')">Begin &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       STAGE 1A — IV definition
+       ======================================================== -->
+  <div id="screen-s1a" class="screen">
+    <div class="screen-banner bn-s1">
+      <span class="bn-kicker">Stage 1 of 9 — Theory · Question 1 of 2</span>
+      <h2>Defining the independent variable</h2>
+      <p class="bn-sub">What does "rebel dependence on civilian support" actually mean?</p>
+    </div>
+
+    <div class="card card-accent">
+      <p>Before you can develop indicators for <strong>rebel dependence on civilian support</strong>, you need a theoretical definition. Operational measures come later — for now, focus on what the concept <em>means</em>.</p>
+      <p class="muted">Which of the following is the most defensible theoretical definition?</p>
+      <div id="s1a-options" style="margin-top:14px;"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="s1a-check-btn" onclick="checkS1A()">Check answer</button>
+      </div>
+      <div class="feedback" id="s1a-feedback"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goTo('screen-s1b')">Continue &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       STAGE 1B — mechanism revisions + live diagram
+       ======================================================== -->
+  <div id="screen-s1b" class="screen">
+    <div class="screen-banner bn-s1">
+      <span class="bn-kicker">Stage 1 of 9 — Theory · Question 2 of 2</span>
+      <h2>Sharpening the mechanisms</h2>
+      <p class="bn-sub">Each mechanism should name an actor and a change in behavior or belief</p>
+    </div>
+
+    <div class="card card-accent">
+      <p>The diagram below sketches the theory. The independent and dependent variable are fixed, but the four <em>mechanism</em> boxes need some polishing. A good qualitative mechanism statement names <strong>an actor</strong> (expressed as a noun) and <strong>a change in behavior or belief</strong> (expressed using a verb) — not just a generic causal step. Improve the causal diagram below by adding actors and expected changes.</p>
+
+      <p class="muted" style="margin-top:6px;">Click any dashed box to edit it directly. The diagram updates as you type.</p>
+
+      <div class="diagram-label" style="margin-top:18px;">Causal diagram — edit the mechanism boxes</div>
+      <div class="live-diagram">
+        <div class="ld-grid">
+          <div class="ld-box ld-iv">High rebel dependence on civilian support</div>
+
+          <div class="ld-arrow">→</div>
+          <div class="ld-box mech untouched" contenteditable="true" id="ld-m1a"
+               onfocus="onMechFocus(this)" oninput="onMechInput(this)">Raises the expected costs of abuse</div>
+          <div class="ld-arrow">→</div>
+          <div class="ld-box mech untouched" contenteditable="true" id="ld-m1b"
+               onfocus="onMechFocus(this)" oninput="onMechInput(this)">Impose rules and nurture practices</div>
+          <div class="ld-arrow">→</div>
+
+          <div class="ld-arrow">→</div>
+          <div class="ld-box mech untouched" contenteditable="true" id="ld-m2a"
+               onfocus="onMechFocus(this)" oninput="onMechInput(this)">Information on civilian loyalties</div>
+          <div class="ld-arrow">→</div>
+          <div class="ld-box mech untouched" contenteditable="true" id="ld-m2b"
+               onfocus="onMechFocus(this)" oninput="onMechInput(this)">Selective violence</div>
+          <div class="ld-arrow">→</div>
+
+          <div class="ld-box ld-dv">Incresed rebel restraint vis-à-vis civilians</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goTo('screen-s2')">Continue to operationalization &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       STAGE 2 — IV INDICATORS
+       ======================================================== -->
+  <div id="screen-s2" class="screen">
+    <div class="screen-banner bn-s2">
+      <span class="bn-kicker">Stage 2 of 9 — Indicators</span>
+      <h2>Measuring the independent variable</h2>
+      <p class="bn-sub">Pick two indicators of rebel dependence on civilian support</p>
+    </div>
+
+    <div class="card card-accent">
+      <h3>The shortlist</h3>
+      <p>Below are eight candidate indicators of <strong>rebel dependence on civilian support</strong>. Some are appropriate; others are flawed in subtle ways. <strong>Select two indicators that you would actually use.</strong> The system will tell you whether your selections are defensible — but only once you've picked two.</p>
+      <div class="sel-counter">
+        <div class="sel-count-badge" id="s2-count">0</div>
+        <span id="s2-count-label">indicators selected (select exactly 2)</span>
+      </div>
+      <div class="ind-list" id="s2-list"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="s2-check-btn" disabled onclick="checkS2()">Check selections</button>
+      </div>
+      <div class="feedback" id="s2-feedback"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="s2-next-btn" style="display:none;" onclick="goTo('screen-s3')">Continue &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       STAGE 3 — RATE INDICATORS
+       ======================================================== -->
+  <div id="screen-s3" class="screen">
+    <div class="screen-banner bn-s3">
+      <span class="bn-kicker">Stage 3 of 9 — Certainty &amp; uniqueness</span>
+      <h2>How strong is your evidence?</h2>
+      <p class="bn-sub">Rate your two chosen indicators on certainty and uniqueness</p>
+    </div>
+
+    <div class="card card-note">
+      <strong>Reminder — what are you confirming or disconfirming?</strong> Certainty and uniqueness are always relative to a <em>specific inference</em>, not the overall theory. Here you are developing indicators of the <strong>independent variable</strong> — <em>rebel dependence on civilian support</em>. The inference at stake is therefore <em>descriptive</em>: "this rebel group is (or is not) dependent on civilian support."<br><br>
+      <em>Certainty</em> = how <em>necessary</em> the evidence is for the descriptive inference: if the rebels really are dependent on civilians, we should certainly observe this indicator — so failing to find it <strong>disconfirms</strong> the inference (disconfirmatory power). <em>Uniqueness</em> = how <em>unique</em> the evidence is to dependence: no rival description would predict it — so finding it <strong>confirms</strong> the inference (confirmatory power).
+    </div>
+
+    <div id="s3-rating-area"></div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goTo('screen-s4')">Continue &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       STAGE 4 — DESIGNING THE INTERVIEW POOL
+       ======================================================== -->
+  <div id="screen-s4" class="screen">
+    <div class="screen-banner bn-s4">
+      <span class="bn-kicker">Stage 4 of 9 — Designing the interview pool</span>
+      <h2>Who do you talk to?</h2>
+      <p class="bn-sub">For one specific indicator, decide whose voices you need in the data</p>
+    </div>
+
+    <div class="card card-accent">
+      <p>Focus on the indicator: <em>"Share of rebel food and supplies that are supplied by local civilians rather than external sponsors or looting."</em></p>
+      <p>You have time for <strong>exactly four groups of interview respondents</strong>. Build your pool by clicking respondent cards on the left to move them to your pool on the right; click again to remove. Different respondent types give you different parts of the picture — some are well-placed, some are unreliable, and a few would be ethically problematic to interview about this question.</p>
+      <div class="sel-counter">
+        <div class="sel-count-badge" id="s4-count">0</div>
+        <span id="s4-count-label">respondent groups selected (pick exactly 4)</span>
+      </div>
+      <div class="pool-grid">
+        <div class="pool-col">
+          <h4>Available respondents</h4>
+          <div id="s4-available"></div>
+        </div>
+        <div class="pool-col">
+          <h4>Your interview pool</h4>
+          <div id="s4-pool"></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="s4-submit-btn" disabled onclick="submitS4Pool()">Submit pool</button>
+      </div>
+      <div class="feedback" id="s4-feedback"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="s4-next-btn" style="display:none;" onclick="goTo('screen-s5')">Continue &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       STAGE 5 — DV INDICATORS
+       ======================================================== -->
+  <div id="screen-s5" class="screen">
+    <div class="screen-banner bn-s5">
+      <span class="bn-kicker">Stage 5 of 9 — DV indicators</span>
+      <h2>Measuring rebel restraint</h2>
+      <p class="bn-sub">Now you design the indicators yourselves</p>
+    </div>
+
+    <div class="card card-accent">
+      <p>You have just thought hard about what indicators of the <em>independent</em> variable look like. Now develop <strong>two indicators for your dependent variable</strong> — rebel restraint vis-à-vis civilians.</p>
+      <p>For each indicator, briefly state <em>what you would look for</em> as evidence of restraint. Try to make the indicators as certain and unique as possible — you do not need to specify where the evidence would come from at this stage.</p>
+      <div class="ft-wrap">
+        <label class="ft-label" for="s5-ind1">Indicator 1</label>
+        <textarea id="s5-ind1" placeholder="We would look for…"></textarea>
+      </div>
+      <div class="ft-wrap">
+        <label class="ft-label" for="s5-ind2">Indicator 2</label>
+        <textarea id="s5-ind2" placeholder="We would look for…"></textarea>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goTo('screen-s6')">Continue &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       STAGE 6 — MECHANISM INDICATORS
+       ======================================================== -->
+  <div id="screen-s6" class="screen">
+    <div class="screen-banner bn-s6">
+      <span class="bn-kicker">Stage 6 of 9 — Mechanism indicators</span>
+      <h2>Measuring the mechanism</h2>
+      <p class="bn-sub">Pick which mechanism to study, then choose two appropriate indicators</p>
+    </div>
+
+    <div class="card card-accent" id="s6-pick-mech">
+      <h3>Which mechanism does your group want to focus on?</h3>
+      <div class="mech-grid">
+        <button class="mech-btn" onclick="chooseMech('cost')">
+          <span class="mb-title">Mechanism 1</span>
+          The cost of abusing civilians rises, so rebels restrain themselves.
+        </button>
+        <button class="mech-btn" onclick="chooseMech('info')">
+          <span class="mb-title">Mechanism 2</span>
+          Closer ties to civilians yield better information, so rebels target violence more selectively.
+        </button>
+      </div>
+    </div>
+
+    <div class="card card-accent" id="s6-indicator-card" style="display:none;">
+      <h3>The indicator shortlist</h3>
+      <p>Below are eight candidate indicators for your chosen mechanism. <strong>Some are inappropriate.</strong> Pick two that you would defensibly use.</p>
+      <div class="sel-counter">
+        <div class="sel-count-badge" id="s6-count">0</div>
+        <span id="s6-count-label">indicators selected (select exactly 2)</span>
+      </div>
+      <div class="ind-list" id="s6-list"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="s6-check-btn" disabled onclick="checkS6()">Check selections</button>
+      </div>
+      <div class="feedback" id="s6-feedback"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="s6-next-btn" style="display:none;" onclick="goTo('screen-s8pos')">Continue &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       STAGE 7 — POSITIONALITY (team builder, before excerpts)
+       ======================================================== -->
+  <div id="screen-s8pos" class="screen">
+    <div class="screen-banner bn-s7">
+      <span class="bn-kicker">Stage 7 of 9 — Positionality</span>
+      <h2>Who is doing the research?</h2>
+      <p class="bn-sub">Build a two-person research team and reason about what that team can and cannot see</p>
+    </div>
+
+    <div class="card card-accent">
+      <p>You are about to collect data produced in a particular kind of researcher–informant encounter. Before you do, decide who the researcher actually is. There is no neutral position: every researcher brings doors that open and doors that close. Positionality always matters, the question is how.</p>
+      <p>The project has the budget for <strong>two researchers</strong>. Five candidates are described below. Pick the two you would send.</p>
+      <div class="sel-counter">
+        <div class="sel-count-badge" id="s8pos-count">0</div>
+        <span id="s8pos-count-label">researchers selected (pick exactly 2)</span>
+      </div>
+      <div id="s8pos-profiles" style="margin-top:14px;"></div>
+
+      <div class="ft-wrap" style="margin-top:18px;">
+        <label class="ft-label" for="s8pos-reflect">Strengths and weaknesses of your team's positionality</label>
+        <p class="muted" style="margin-bottom:8px;">Briefly note what the combination opens up and what it closes off — for example, who is likely to talk freely, who is likely to withhold, and how the team will be read before anyone speaks.</p>
+        <textarea id="s8pos-reflect" placeholder="Together, this team…"></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="s8pos-submit-btn" disabled onclick="submitS8Pos()">Submit team</button>
+      </div>
+      <div class="feedback" id="s8pos-feedback"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="s8pos-next-btn" style="display:none;" onclick="goTo('screen-s8a')">Continue to archives &amp; field &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       STAGE 8 — ARCHIVES & FIELD (four excerpts, one per screen)
+       ======================================================== -->
+  <div id="screen-s8a" class="screen">
+    <div class="screen-banner bn-s8">
+      <span class="bn-kicker">Stage 8 of 9 — Archives &amp; field · 1 of 4</span>
+      <h2>Reading evidence</h2>
+      <p class="bn-sub">Which observable implication does this excerpt most directly support?</p>
+    </div>
+    <div id="s8a-body"></div>
+  </div>
+
+  <div id="screen-s8b" class="screen">
+    <div class="screen-banner bn-s8">
+      <span class="bn-kicker">Stage 8 of 9 — Archives &amp; field · 2 of 4</span>
+      <h2>Reading evidence</h2>
+      <p class="bn-sub">Which observable implication does this excerpt most directly support?</p>
+    </div>
+    <div id="s8b-body"></div>
+  </div>
+
+  <div id="screen-s8c" class="screen">
+    <div class="screen-banner bn-s8">
+      <span class="bn-kicker">Stage 8 of 9 — Archives &amp; field · 3 of 4</span>
+      <h2>Reading evidence</h2>
+      <p class="bn-sub">Which observable implication does this excerpt most directly support?</p>
+    </div>
+    <div id="s8c-body"></div>
+  </div>
+
+  <div id="screen-s8d" class="screen">
+    <div class="screen-banner bn-s8">
+      <span class="bn-kicker">Stage 8 of 9 — Archives &amp; field · 4 of 4</span>
+      <h2>Reading evidence</h2>
+      <p class="bn-sub">Which observable implication does this excerpt most directly support?</p>
+    </div>
+    <div id="s8d-body"></div>
+  </div>
+
+  <!-- ========================================================
+       STAGE 8E — The silent archive
+       ======================================================== -->
+  <div id="screen-s8e" class="screen">
+    <div class="screen-banner bn-s8">
+      <span class="bn-kicker">Stage 8 of 9 — A silent archive</span>
+      <h2>What does an absence tell you?</h2>
+      <p class="bn-sub">You searched. You found nothing. Now what?</p>
+    </div>
+
+    <div class="card card-accent">
+      <p>You have spent two weeks systematically scanning the rebel group's internal archives — orders, training materials, post-action reports, disciplinary files — for any document instructing fighters on how to engage with civilians. You find <strong>none</strong>.</p>
+      <p class="muted">Does this absence support the inference that the rebels were <strong>not</strong> dependent on civilians? There is no single right answer — discuss, pick a position, and motivate it.</p>
+      <div id="s8e-options" style="margin-top:14px;"></div>
+      <div class="ft-wrap" style="margin-top:14px;">
+        <label class="ft-label" for="s8e-motivation">Motivate your group's choice</label>
+        <textarea id="s8e-motivation" placeholder="We picked this position because…"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="s8e-submit-btn" disabled onclick="submitS8E()">Submit</button>
+      </div>
+      <div class="feedback" id="s8e-feedback"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="s8e-next-btn" disabled onclick="goTo('screen-s8f')">Continue &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       STAGE 8F — What just happened? (one of three vignettes)
+       ======================================================== -->
+  <div id="screen-s8f" class="screen">
+    <div class="screen-banner bn-s8">
+      <span class="bn-kicker">Stage 8 of 9 — What just happened?</span>
+      <h2>Reading the room</h2>
+      <p class="bn-sub">One short field vignette. No right or wrong answers — a comment will appear once you choose.</p>
+    </div>
+    <div id="s8f-body"></div>
+  </div>
+
+  <!-- ========================================================
+       STAGE 8G — Conference critique (gender blind spots)
+       ======================================================== -->
+  <div id="screen-s8g" class="screen">
+    <div class="screen-banner bn-s8">
+      <span class="bn-kicker">Stage 8 of 9 — Conference critique</span>
+      <h2>A gender scholar pushes back</h2>
+      <p class="bn-sub">Looking back honestly at the choices you made</p>
+    </div>
+
+    <div class="ex-layout">
+      <div class="ex-image-wrap">
+        <img src="conference.png" alt="A panel at an academic conference">
+      </div>
+      <div>
+        <div class="card card-accent" style="margin-bottom:0;">
+          <p>You presented your findings at an international conference last week. The discussion was lively — until, near the end, a gender scholar in the audience raised her hand and asked whether you had really thought about the gendered dynamics of any of this. Your first instinct was annoyance: another scholar pulling her own hobbyhorse into a paper that wasn't about that. You answered briefly and moved on.</p>
+          <p>Sitting with the question on the flight home, you realised the critique cut more deeply than you had let yourself see in the room. It is one thing to insist your paper is about something else; it is another to ask honestly whether your analysis has gendered blind spots you simply did not see.</p>
+          <p class="muted">Below are eight places where gender could have mattered in this study. Honestly flag the ones your group <strong>did not adequately account for</strong> in your analysis — then mark the single omission you believe could have the biggest impact on your findings.</p>
+          <div class="sel-counter" style="margin-top:14px;">
+            <div class="sel-count-badge" id="s8g-count">0</div>
+            <span id="s8g-count-label">blind spots flagged</span>
+          </div>
+          <div class="ind-list" id="s8g-list"></div>
+
+          <div id="s8g-biggest-wrap" style="display:none; margin-top:18px;">
+            <label class="ft-label">Which omission could most affect your findings?</label>
+            <div id="s8g-biggest-options"></div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn btn-primary" id="s8g-submit-btn" onclick="submitS8G()">Submit</button>
+          </div>
+          <div class="feedback" id="s8g-feedback"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="s8g-next-btn" style="display:none;" onclick="goTo('screen-s9')">Continue to ethics &rarr;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       STAGE 9 — ETHICS (one of two dilemmas, randomised)
+       ======================================================== -->
+  <div id="screen-s9" class="screen">
+    <div class="screen-banner bn-s9" id="s9-banner">
+      <span class="bn-kicker" id="s9-kicker">Stage 9 of 9</span>
+      <h2 id="s9-title">An ethical dilemma</h2>
+      <p class="bn-sub" id="s9-sub">A reflective discussion to close the seminar</p>
+    </div>
+
+    <div class="card card-accent">
+      <div id="s9-body-text"></div>
+      <div class="ft-wrap">
+        <textarea id="s9-response" placeholder="Our group's response, and the trade-offs we weighed…"></textarea>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goTo('screen-summary')">Finish &amp; review answers &rarr;</button>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       SCREEN: SUMMARY
+       ======================================================== -->
+  <div id="screen-summary" class="screen">
+    <div class="screen-banner bn-intro">
+      <span class="bn-kicker">Wrap-up</span>
+      <h2>Your group's answers</h2>
+      <p class="bn-sub">Take a moment to review, then download a copy</p>
+    </div>
+
+    <div class="card card-note">
+      <strong>What now?</strong> Your group can read through the responses below, refine anything before downloading, and then export a printable summary for discussion in the plenary.
+    </div>
+
+    <div id="summary-body"></div>
+
+    <div class="dl-section">
+      <h3>Download your group's answers</h3>
+      <p>A new window will open with a printable version. Use your browser's print dialog to save as PDF.</p>
+      <button class="btn-dl" onclick="downloadAnswers()">Download summary</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="page-footer">Seminar scenario created by Sebastian van Baalen · Department of Peace and Conflict Research, Uppsala University</div>
+
+<script>
+/* ============================================================
+   STATE & DATA
+   ============================================================ */
+const state = {
+  groupMembers: [],
+  s1a: null,
+  s1bM1a: '', s1bM1b: '',
+  s1bM2a: '', s1bM2b: '',
+  s2Selected: [],
+  s2Locked: false,
+  s3Ratings: {},     // { indicatorId: { certainty: n, uniqueness: n, motivation: '' } }
+  s4Pool: [],
+  s4Submitted: false,
+  s4Feedback: null,   // { coverage, missing, ethicsPicks, strongPairs }
+  s4Order: null,      // shuffled order of respondent ids in the Available column
+  s5Ind1: '',
+  s5Ind2: '',
+  s6Mech: null,      // 'cost' | 'info'
+  s6Selected: [],
+  s6Locked: false,
+  s8Answers: {},     // { excerptId: choiceId }
+  s8posPool: [],     // up to 2 researcher profile ids
+  s8posReflect: '',  // free-text reflection
+  s8posSubmitted: false,
+  s8gFlagged: [],    // ids of gender blind spots admitted
+  s8gBiggest: null,  // id of the one with biggest impact
+  s8gSubmitted: false,
+  s8eChoice: null,   // silent archive: 'a' | 'b'
+  s8eMotivation: '',
+  s8eSubmitted: false,
+  s8ePending: null,  // option highlighted but not yet submitted
+  s8fVariant: null,  // 'subject' | 'glance' | 'short'
+  s8fMotivation: '',
+  s8fSubmitted: false,
+  s8fPending: null,
+  s8fChoice: null,   // option id within the chosen vignette
+  s9Variant: null,   // 'icc' | 'story'
+  s9Response: '',
+};
+
+/* IV definition options (1A) */
+const S1A_OPTIONS = [
+  { id: 'a', correct: false,
+    text: 'The extent to which civilians supply food, shelter, and recruits to the rebel group.',
+    explain: 'This conflates the independent variable with one of its observable manifestations. "Dependence" is a relational property of the rebel group; the amount of support actually received is one of several possible indicators of it, not the concept itself.' },
+  { id: 'b', correct: true,
+    text: 'The degree to which the rebel group cannot pursue its military and political goals without inputs that only the civilian population can provide.',
+    explain: 'This captures dependence as a structural feature of the rebel group — it is about what they need, not just what they happen to receive — and is broad enough to cover material, informational, and legitimacy-based forms of dependence.' },
+  { id: 'c', correct: false,
+    text: 'The proportion of the local civilian population that actively sympathises with the rebel cause.',
+    explain: 'Civilian sympathy is an outcome variable for a different theory, and rebels can be highly dependent on a population that is not particularly sympathetic (they may still need its inputs).' },
+  { id: 'd', correct: false,
+    text: 'The number of civilian-targeted attacks the rebels commit per year.',
+    explain: 'This is closer to the dependent variable (the inverse of restraint) than to the independent variable, and conflates the concept with what we want to explain.' },
+];
+
+/* IV indicator shortlist (Stage 2) */
+const S2_INDICATORS = [
+  { id: 'a', good: true, certainty: 'medium', uniqueness: 'medium',
+    text: 'Share of rebel food and supplies that are supplied by local civilians rather than external sponsors or looting.',
+    explain: 'A reasonable indicator: high reliance on locally supplied goods is a direct sign of material dependence on civilians.' },
+  { id: 'b', good: false,
+    text: 'Number of civilians killed by the rebels in the past year.',
+    explain: 'This is a measure of the dependent variable, not the independent variable. Using it would build the outcome into the predictor.' },
+  { id: 'c', good: true, certainty: 'low', uniqueness: 'high',
+    text: 'Whether rebel commanders explicitly describe civilian support as a strategic necessity in internal documents or training materials.',
+    explain: 'A strong indicator: it captures dependence as understood by the rebels themselves, in their own words.' },
+  { id: 'd', good: false,
+    text: 'How positively local civilians describe the rebels in survey responses.',
+    explain: 'This measures civilian attitudes — a possible outcome of rebel behaviour or propaganda, not a measure of how dependent the rebels are. It risks tautology: rebels that behave well will be described positively regardless of dependence.' },
+  { id: 'e', good: true, certainty: 'high', uniqueness: 'low',
+    text: 'Whether the rebels operate primarily in territory inhabited by their claimed ethnic, regional, or political constituency.',
+    explain: 'A reasonable indicator: operating in your constituency is consistent with dependence on a particular civilian population.' },
+  { id: 'f', good: false,
+    text: 'How long the rebel group has been active in the area.',
+    explain: 'Duration of presence is too distant from the concept. Long-running groups can be highly dependent or highly autonomous; duration tells you little on its own.' },
+  { id: 'g', good: true, certainty: 'high', uniqueness: 'medium',
+    text: 'The extent to which the rebels recruit, tax, and gather intelligence through civilian institutions (village councils, cooperatives, religious networks) rather than through coerced or external structures.',
+    explain: 'A strong indicator: dependence is hard to fake when it is institutionalised through civilian intermediaries.' },
+  { id: 'h', good: false,
+    text: 'Whether international observers have publicly described the rebels as "popular" or "grassroots".',
+    explain: 'External labels are noisy and politically loaded. They tell you more about the observers than about the rebels themselves.' },
+];
+
+/* Stage 6 — mechanism indicators */
+const S6_INDICATORS = {
+  cost: [
+    { id: 'a', good: true,
+      text: 'Internal rebel orders explicitly threatening sanctions against fighters who steal from or abuse civilians.',
+      explain: 'Strong: this is direct evidence that commanders perceive abuse as costly and are acting on that perception.' },
+    { id: 'b', good: false, ethics: false,
+      text: 'Comparing rates of civilian abuse across districts with different levels of civilian support, controlling for rebel ideology.',
+      explain: 'This is a cross-case quantitative test, not a within-case process-tracing indicator of the mechanism. It cannot tell you whether the cost calculation is doing the work.' },
+    { id: 'c', good: true,
+      text: 'Interview accounts from former fighters in which commanders explain that abuse will "cost us" support.',
+      explain: 'Strong: testimony that names the actor (commander) and the action (instruction grounded in cost reasoning).' },
+    { id: 'd', good: false, ethics: true,
+      text: 'Asking surviving family members of civilians killed by the rebels whether they think their relatives "did something to deserve it".',
+      explain: '⚠ Ethically inappropriate. The question places the burden of moral justification on victims and risks serious re-traumatisation, with little inferential payoff.' },
+    { id: 'e', good: true,
+      text: 'Changes in rebel disciplinary practice (e.g., introduction of internal courts) after periods of civilian withdrawal of support.',
+      explain: 'Strong: a temporal sequence that matches the mechanism — rebels respond to cost signals by tightening discipline.' },
+    { id: 'f', good: false, ethics: false,
+      text: 'The total number of pages of rebel internal documents in the archive.',
+      explain: 'Volume of material says nothing about content. This is a feasibility note, not an indicator.' },
+    { id: 'g', good: false, ethics: true,
+      text: 'Approaching demobilised fighters who received amnesty and asking them to describe, for the record, abuses they personally committed but were never prosecuted for.',
+      explain: '⚠ Ethically inappropriate. The question exposes informants to legal jeopardy and possible violation of their amnesty conditions, with no clear way for them to refuse without flagging guilt.' },
+    { id: 'h', good: true,
+      text: 'Patterns in NGO reports showing that rebel abuse rises in areas where civilians have alternative protectors (state forces, rival groups) and falls where civilians have no alternatives.',
+      explain: 'Reasonable: variation in abuse with civilian outside options is consistent with the cost mechanism. Less direct than rebel testimony but still useful.' },
+  ],
+  info: [
+    { id: 'a', good: true,
+      text: 'Records of rebel selective targeting of suspected collaborators (rather than indiscriminate sweeps).',
+      explain: 'Strong: precision in targeting is exactly what the information mechanism predicts.' },
+    { id: 'b', good: false, ethics: false,
+      text: 'Number of civilians who participated in pro-rebel demonstrations in the capital.',
+      explain: 'Public support displays in the capital tell you nothing about whether rebels in the field have access to fine-grained intelligence on civilian loyalties.' },
+    { id: 'c', good: true,
+      text: 'Interview accounts in which villagers describe having warned rebels about specific informants or government collaborators.',
+      explain: 'Strong: direct evidence of information flowing from civilians to rebels.' },
+    { id: 'd', good: false, ethics: true,
+      text: 'Asking current civilians whether they personally identified neighbours as collaborators to the rebels.',
+      explain: '⚠ Ethically inappropriate. Documenting individual acts of informing exposes informants to retaliation from the state, rival groups, or returning displaced persons.' },
+    { id: 'e', good: true,
+      text: 'Geographic patterns in killings: clusters around named individuals (intelligence-driven) versus indiscriminate village-wide events.',
+      explain: 'Strong: patterns of violence are a classic indicator of selective vs. indiscriminate targeting.' },
+    { id: 'f', good: false, ethics: false,
+      text: 'Whether the rebel group has a Twitter or Facebook account.',
+      explain: 'Social media presence is unrelated to whether rebels have intelligence on local civilians.' },
+    { id: 'g', good: false, ethics: true,
+      text: 'Showing former rebels photographs of named villagers and asking which of them ever provided information to the rebel group.',
+      explain: '⚠ Ethically inappropriate. Naming present-day villagers as past informants — even retrospectively — exposes them to retaliation from the state, rival groups, or returning displaced persons.' },
+    { id: 'h', good: true,
+      text: 'Whether trial records and amnesty commission documents distinguish between civilians killed as "suspected collaborators" and civilians killed during sweeps.',
+      explain: 'Strong: official categorisations preserve information about the selectivity of violence.' },
+  ],
+};
+
+/* Stage 8 — excerpts */
+const S8_EXCERPTS = [
+  {
+    id: 'ex1',
+    image: 'rebel.png',
+    imageAlt: 'A former rebel commander, photographed in profile',
+    kind: 'Interview · former rebel commander, March 2024',
+    text: '"You have to understand — we ran a tighter operation than people now remember. Discipline was strict; there were consequences. It was not because we were saints — we were not. But you cannot fight the kind of war we were fighting if your men cannot walk through a village without a rifle on every porch. That was something the younger commanders sometimes had to learn the hard way."',
+    options: [
+      { id: 'a', text: 'A direct observation about civilian sympathy for the rebel cause.' },
+      { id: 'b', correct: true, text: 'An indicator that commanders perceived civilian abuse as costly (mechanism 1).' },
+      { id: 'c', text: 'Evidence that the rebels had better information about civilian loyalties (mechanism 2).' },
+      { id: 'd', text: 'A measure of the dependent variable — rebel restraint itself.' },
+    ],
+    explain: 'The commander does not name the mechanism, but his reasoning is unmistakably about cost: abuse would turn civilians from neighbours into a hostile environment ("a rifle on every porch"), and discipline is what prevents that. This is mechanism 1 evidence. Notice that he says nothing about how rebels identified particular informants or collaborators — that is the work of mechanism 2, and it is absent here.',
+  },
+  {
+    id: 'ex2',
+    image: 'villager.png',
+    imageAlt: 'A villager looking out over fields',
+    kind: 'Interview · villager, October 2023',
+    text: '"When the rebels came through, it was not like when the army came. The army would punish whoever was in their way; the rebels were more particular. They went to specific houses and left others alone. Whether that meant they were better people, I cannot say — they had their own ways of knowing things, and not all of those ways were ways anyone in the village wanted to talk about afterwards."',
+    options: [
+      { id: 'a', correct: true, text: 'Evidence that the rebels had better information and targeted violence selectively (mechanism 2).' },
+      { id: 'b', text: 'Evidence that the cost of abuse rose for the rebels (mechanism 1).' },
+      { id: 'c', text: 'A measure of civilian dependence on the rebels.' },
+      { id: 'd', text: 'A measure of state weakness.' },
+    ],
+    explain: 'The contrast between selective rebel violence ("specific houses, not others") and indiscriminate state violence is exactly what the information mechanism predicts: rebels with good information can target precisely. The excerpt hints at how some of that information arrived — through villagers themselves — without spelling it out. Note that the excerpt is silent on whether rebels were restraining themselves out of cost calculations (mechanism 1); the selectivity, not the discipline, is the evidence.',
+  },
+  {
+    id: 'ex3',
+    image: 'manual.png',
+    imageAlt: 'A photograph of a worn rebel training manual',
+    kind: 'Document · rebel internal training manual, 1998',
+    text: '"Article 14. The people are the soil in which our movement takes root; without them, nothing we plant will grow. The fighter who forgets this — who takes from the people what has not been freely given, who raises a hand against those we are sworn to serve — has placed himself outside the discipline of the cause. The political commissar shall not delay in convening."',
+    options: [
+      { id: 'a', text: 'Direct evidence of rebel restraint (the dependent variable).' },
+      { id: 'b', text: 'An indicator of rebel selective targeting (mechanism 2).' },
+      { id: 'c', correct: true, text: 'An indicator of the rebels\' strategic dependence on civilians AND of the cost mechanism.' },
+      { id: 'd', text: 'A measure of formal rebel hierarchy unrelated to civilian relations.' },
+    ],
+    explain: 'The manual is a strong piece of evidence because it speaks to both the IV (dependence — "the soil in which our movement takes root") and mechanism 1 (internal sanctions — "The political commissar shall not delay in convening"). Documents that fuse IV- and mechanism-level evidence are particularly powerful.',
+  },
+  {
+    id: 'ex4',
+    image: 'researcher.png',
+    imageAlt: 'A researcher reading an archival document',
+    kind: 'Document · NGO report on selective violence, 2005',
+    text: '"Between January 2003 and June 2004, our team documented 47 killings in Belavir district that were attributed to [the rebel group]. Of these, 39 involved a single named victim or a small group; in 12 of those cases, relatives told our researchers that the deceased had previously been employed by the prefecture or had a sibling serving with the gendarmerie. Seven incidents involved between two and four victims, mostly unrelated to one another. One was a mass-casualty event in which fifteen people died after [the rebel group] opened fire during a market dispute."',
+    options: [
+      { id: 'a', text: 'Evidence of the cost mechanism (mechanism 1).' },
+      { id: 'b', correct: true, text: 'Evidence of the information mechanism — selective rather than indiscriminate violence (mechanism 2).' },
+      { id: 'c', text: 'Evidence that rebels were not dependent on civilians.' },
+      { id: 'd', text: 'Evidence that the NGO was politically aligned with the rebels.' },
+    ],
+    explain: 'The bulk of the documented killings — 39 of 47, with a substantial share involving victims linked to the prefecture or the gendarmerie — fit the information-mechanism pattern: violence directed at named, identifiable targets rather than at the population at large. That said, the excerpt complicates an unambiguous read: the seven incidents with multiple unrelated victims and the market-shooting mass-casualty event do <em>not</em> obviously fit the selective-targeting story, so the overall picture is "mostly selective, with exceptions worth explaining."',
+  },
+];
+
+/* Stage 8E — silent archive (two options, no right/wrong) */
+const S8E_OPTIONS = [
+  { id: 'a',
+    text: 'Yes — if the rebels had been highly dependent on civilians, they would almost certainly have codified rules for engaging civilians in writing. The absence of such documents is meaningful evidence that civilians were not strategically central.',
+    explain: 'A defensible reading <em>if</em> you can independently establish that the rebels had a paper-based culture and that the archive is reasonably complete. Without those auxiliary claims, the inference rests heavily on assumptions about what <em>should</em> have been written down.' },
+  { id: 'b',
+    text: 'No — the absence of documents tells us little on its own. Rules may have been transmitted orally; sensitive files may have been deliberately destroyed; the archive may simply not capture the full range of materials produced.',
+    explain: 'This treats the absence as ambiguous and pushes you to look for confirming evidence elsewhere. It is the safer move inferentially, but leaves the question open. The deeper point: absences only become evidence once you can specify the conditions under which the documents <em>would</em> have existed.' },
+];
+
+/* Stage 8F — "What just happened?" vignettes (one is shown at random) */
+const S8F_VIGNETTES = [
+  {
+    id: 'subject',
+    title: 'A subject that keeps changing',
+    body: `You are interviewing a former rebel about a specific raid on a village in 1998. He pauses, then talks at length about a training course he attended that year. Each time you steer the conversation back to the raid, the subject shifts again — to logistics, to the weather, to comrades who have since died.`,
+    question: 'What is going on, and what do you do?',
+    options: [
+      { id: 'a', text: 'Treat the deflection as evidence that the raid involved abuses he wishes to hide.',
+        explain: 'A plausible reading — but a strong inferential leap. The same behaviour can indicate trauma, fear of third parties, simple forgetting, or a sense that the question is impolitic. Treating deflection as a finding risks confirmation bias.' },
+      { id: 'b', text: 'Treat the deflection as evidence of trauma or discomfort; pushing further could cause harm.',
+        explain: 'A defensible duty-of-care reading. The cost is that you may close off a line of inquiry the informant might, under different circumstances, have wanted to pursue.' },
+      { id: 'c', text: 'Treat the deflection as analytically ambiguous; do not infer anything from it without other evidence.',
+        explain: 'The methodologically conservative position. Its challenge is practical: "ambiguous" does not tell you what to do <em>next</em> in the interview itself.' },
+      { id: 'd', text: 'Drop this line of questioning and look for information about the raid in other sources.',
+        explain: 'A pragmatic move that protects the informant and your data. The risk: if every informant deflects on this topic, the pattern of silence itself becomes a finding worth reporting — and triangulation may not always be possible.' },
+    ],
+  },
+  {
+    id: 'glance',
+    title: 'A glance toward the door',
+    body: `You are interviewing a younger woman in the local hall. Each time you ask about the rebels' relationship with civilians, she glances briefly at a respected village elder — a man seated near the door — before answering. He has not been introduced; you do not know who he is to her.`,
+    question: 'How do you read the glance, and what do you do?',
+    options: [
+      { id: 'a', text: 'The elder is probably monitoring the interview; treat her answers as compromised.',
+        explain: 'Possible, but a strong inference from a single non-verbal cue. Discarding testimony on this basis could mean losing valuable material on the basis of a guess.' },
+      { id: 'b', text: 'She is deferring to someone she respects; the dynamic is informative but not necessarily distorting.',
+        explain: 'A more conservative reading. Many social settings involve deference cues; the answers may carry information, though their reliability is conditional on context you do not fully understand.' },
+      { id: 'c', text: 'Pause the interview and ask to speak with the woman alone.',
+        explain: 'Methodologically clean, but socially marked. Asking to remove someone from a public space identifies the topic as sensitive, which may itself create risk for her afterwards.' },
+      { id: 'd', text: 'Continue, but document the dynamic in your fieldnotes for later interpretation.',
+        explain: 'A minimal-intervention option. It preserves the data and allows the interpretive problem to be handled transparently in writing-up. The cost: you are passing the ethical decision forward to your future self.' },
+    ],
+  },
+  {
+    id: 'short',
+    title: 'Answers that keep getting shorter',
+    body: `You are in your fifth interview with a former combatant. The first interviews ran past two hours; this one is twenty minutes in and his answers have shrunk to one or two sentences each. Asked whether he wants to stop, he says he is happy to continue.`,
+    question: 'What does the shrinking mean, and what do you do?',
+    options: [
+      { id: 'a', text: 'He is signalling non-verbally that he wants to end; stop the interview now.',
+        explain: 'Privileges informant welfare over data. Defensible and low-risk. The cost: foregoing information he has explicitly said he is willing to share.' },
+      { id: 'b', text: 'This is interview fatigue; adapt by asking shorter, more targeted questions.',
+        explain: 'Practical and respectful of his stated willingness to continue. Risks under-reading a non-verbal cue that may signal something deeper than tiredness.' },
+      { id: 'c', text: 'Treat the brevity itself as data: note which topics coincide with the shift toward shorter answers.',
+        explain: 'Analytically rich. Useful only if you also act on the duty-of-care implications, rather than just recording them.' },
+      { id: 'd', text: 'Pause, offer a break, and check in on how he is feeling before continuing.',
+        explain: 'A middle path that respects his stated autonomy while taking the non-verbal cues seriously. Often the most defensible move in practice — though it depends on the rapport you have built and the cultural reading of "checking in".' },
+    ],
+  },
+];
+
+/* Stage 9 — randomised ethics dilemma (ICC or veterans\' association) */
+const S9_VARIANTS = {
+  icc: {
+    kicker: 'Stage 9 of 9 — A request from the ICC',
+    title: 'How do you respond?',
+    sub: 'A reflective discussion to close the seminar',
+    body: `<p>A few months after your fieldwork ends, two investigators from the Office of the Prosecutor at the <strong>International Criminal Court</strong> contact you. They have read your working paper. They are building a case against several commanders from the rebel group you studied and would like to discuss what you learned in the field: who you spoke with, what they told you about specific incidents, and what documents you saw.</p>
+      <p>They are professional and respectful. They emphasise that civilian victims deserve justice. They also note that what you observed could be valuable evidence — and that you are under no formal obligation to share it.</p>
+      <p><strong>How do you respond, and why?</strong> Consider: the consent under which interviews were given, the safety of informants and their families, your professional obligations to your discipline and your funder, the prospects for future research in the area, and the broader question of what researchers owe to victims of mass violence.</p>`,
+    placeholder: 'Our group\'s response, and the trade-offs we weighed…',
+    label: 'A request from the ICC',
+  },
+  story: {
+    kicker: 'Stage 9 of 9 — A request from the veterans\' association',
+    title: 'Whose story is it?',
+    sub: 'A reflective discussion to close the seminar',
+    body: `<p>Your working paper is in good shape. The <strong>rebel veterans\' association</strong> — which has been helpful throughout your fieldwork and arranged introductions to several former commanders — asks to see a draft before you submit it for publication. They emphasise that their members will be more comfortable speaking to other researchers in the future if they feel their stories have been told fairly.</p>
+      <p>They do not threaten anything, and they do not ask for veto power. But the request is clearly more than a courtesy: it sits somewhere between <em>sharing the draft with the people who appear in it so they can flag inaccuracies</em> and a soft form of approval over what gets published.</p>
+      <p><strong>How do you respond, and why?</strong> Consider: the value of letting the people you wrote about read your draft and flag factual errors (does this improve accuracy?), the risk of capture or self-censorship, your independence as a researcher, future research access, what is owed to the people who agreed to speak with you, and what is owed to other actors (civilian victims, the state) whose perspectives also figure in your paper.</p>`,
+    placeholder: 'Our group\'s response, and the trade-offs we weighed…',
+    label: 'A request from the veterans\' association',
+  },
+};
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+const SCREEN_STEPS = {
+  'screen-learning-outcomes': 0, 'screen-group': 0, 'screen-intro': 0,
+  'screen-s1a': 1, 'screen-s1b': 1,
+  'screen-s2': 2,
+  'screen-s3': 3,
+  'screen-s4': 4,
+  'screen-s5': 5,
+  'screen-s6': 6,
+  'screen-s8pos': 7,
+  'screen-s8a': 8, 'screen-s8b': 8, 'screen-s8c': 8, 'screen-s8d': 8,
+  'screen-s8e': 8, 'screen-s8f': 8, 'screen-s8g': 8,
+  'screen-s9': 9,
+  'screen-summary': 9,
+};
+
+function goTo(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(screenId);
+  if (!el) return;
+  el.classList.add('active');
+  window.scrollTo(0, 0);
+  updateProgress(SCREEN_STEPS[screenId] || 0);
+  onEnterScreen(screenId);
+}
+function updateProgress(step) {
+  for (let i = 1; i <= 9; i++) {
+    const el = document.getElementById('ps' + i);
+    if (!el) continue;
+    el.classList.remove('active', 'done');
+    if (i < step)  el.classList.add('done');
+    if (i === step) el.classList.add('active');
+  }
+}
+function onEnterScreen(id) {
+  if (id === 'screen-s1a') buildS1A();
+  if (id === 'screen-s2') buildS2List();
+  if (id === 'screen-s3') buildS3Ratings();
+  if (id === 'screen-s4') buildS4();
+  if (id === 'screen-s8pos') buildS8Pos();
+  if (id === 'screen-s8a') buildS8Excerpt('ex1', 's8a', 'screen-s8b');
+  if (id === 'screen-s8b') buildS8Excerpt('ex2', 's8b', 'screen-s8c');
+  if (id === 'screen-s8c') buildS8Excerpt('ex3', 's8c', 'screen-s8d');
+  if (id === 'screen-s8d') buildS8Excerpt('ex4', 's8d', 'screen-s8e');
+  if (id === 'screen-s8e') buildS8E();
+  if (id === 'screen-s8f') buildS8F();
+  if (id === 'screen-s8g') buildS8G();
+  if (id === 'screen-s9')  buildS9();
+  if (id === 'screen-summary') buildSummary();
+}
+
+/* ============================================================
+   STAGE 1A — IV definition MCQ
+   ============================================================ */
+function buildS1A() {
+  const wrap = document.getElementById('s1a-options');
+  wrap.innerHTML = S1A_OPTIONS.map(o => `
+    <button class="mcq-option" id="s1a-opt-${o.id}" onclick="selectS1A('${o.id}')">
+      <span class="opt-label">${o.id.toUpperCase()}</span>
+      <span>${o.text}</span>
+    </button>
+  `).join('');
+  hide('s1a-feedback');
+}
+function checkS1A() {
+  if (!state.s1a) return;
+  const chosen = S1A_OPTIONS.find(o => o.id === state.s1a);
+  const fb = document.getElementById('s1a-feedback');
+  if (chosen.correct) {
+    // Lock everything; reveal the correct answer.
+    S1A_OPTIONS.forEach(o => {
+      const b = document.getElementById('s1a-opt-' + o.id);
+      b.classList.remove('selected');
+      b.classList.add('locked');
+      if (o.correct) b.classList.add('correct');
+    });
+    fb.className = 'feedback vis fb-success';
+    fb.innerHTML = `
+      <div class="fb-title">✓ Strong choice</div>
+      <p>${chosen.explain}</p>
+    `;
+  } else {
+    // Mark only the chosen option as incorrect; do NOT reveal the correct one.
+    const btn = document.getElementById('s1a-opt-' + chosen.id);
+    btn.classList.remove('selected');
+    btn.classList.add('incorrect', 'locked');
+    fb.className = 'feedback vis fb-error';
+    fb.innerHTML = `
+      <div class="fb-title">Not quite — try again</div>
+      <p>${chosen.explain}</p>
+      <p class="muted" style="margin-top:8px;">Pick another option and check again.</p>
+    `;
+    state.s1a = null;
+  }
+}
+function selectS1A(id) {
+  const btn = document.getElementById('s1a-opt-' + id);
+  if (btn.classList.contains('locked')) return; // already-ruled-out options are not reselectable
+  state.s1a = id;
+  S1A_OPTIONS.forEach(o => {
+    const b = document.getElementById('s1a-opt-' + o.id);
+    if (!b.classList.contains('locked')) b.classList.remove('selected');
+  });
+  btn.classList.add('selected');
+}
+
+/* ============================================================
+   STAGE 1B — live diagram update
+   ============================================================ */
+function onMechFocus(el) {
+  // On first focus while still showing placeholder text, select it all so the
+  // student can start typing to overwrite — but the text stays visible until they do.
+  if (el.classList.contains('untouched')) {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+}
+function onMechInput(el) {
+  el.classList.remove('untouched');
+  // Persist all four boxes.
+  state.s1bM1a = document.getElementById('ld-m1a').innerText.trim();
+  state.s1bM1b = document.getElementById('ld-m1b').innerText.trim();
+  state.s1bM2a = document.getElementById('ld-m2a').innerText.trim();
+  state.s1bM2b = document.getElementById('ld-m2b').innerText.trim();
+}
+
+/* ============================================================
+   STAGE 2 — IV indicators
+   ============================================================ */
+function buildS2List() {
+  const wrap = document.getElementById('s2-list');
+  wrap.innerHTML = S2_INDICATORS.map(o => `
+    <div class="ind-item" id="s2-item-${o.id}" onclick="toggleS2('${o.id}')">
+      <span class="ind-bullet">${o.id.toUpperCase()}</span>
+      <div class="ind-body">
+        <div>${o.text}</div>
+        <div class="ind-feedback" id="s2-fb-${o.id}">${o.explain}</div>
+      </div>
+    </div>
+  `).join('');
+}
+function toggleS2(id) {
+  if (state.s2Locked) return;
+  const el = document.getElementById('s2-item-' + id);
+  // Once an option has been submitted and judged (green or red), it is permanently locked.
+  if (el.classList.contains('flagged-bad') || el.classList.contains('flagged-good')) return;
+  const idx = state.s2Selected.indexOf(id);
+  if (idx > -1) {
+    state.s2Selected.splice(idx, 1);
+    el.classList.remove('selected');
+  } else if (state.s2Selected.length < 2) {
+    state.s2Selected.push(id);
+    el.classList.add('selected');
+  }
+  updateS2Count();
+}
+function updateS2Count() {
+  const n = state.s2Selected.length;
+  document.getElementById('s2-count').textContent = n;
+  document.getElementById('s2-count-label').textContent =
+    n === 2 ? 'indicators selected — ready to check' : 'indicators selected (select exactly 2)';
+  document.getElementById('s2-check-btn').disabled = (n !== 2);
+}
+function checkS2() {
+  const chosen = state.s2Selected.map(id => S2_INDICATORS.find(o => o.id === id));
+  const fb = document.getElementById('s2-feedback');
+  // Lock each chosen item individually. Good ones turn green and stay selected;
+  // bad ones turn red, get unselected, and become permanently unclickable.
+  chosen.forEach(o => {
+    const el = document.getElementById('s2-item-' + o.id);
+    el.classList.remove('selected');
+    if (o.good) {
+      el.classList.add('flagged-good', 'locked');
+    } else {
+      el.classList.add('flagged-bad', 'locked');
+      state.s2Selected = state.s2Selected.filter(x => x !== o.id);
+    }
+  });
+  const goodPickedCount = state.s2Selected.length; // these are now green-locked
+  const allGood = chosen.every(o => o.good);
+  if (allGood && goodPickedCount === 2) {
+    state.s2Locked = true;
+    fb.className = 'feedback vis fb-success';
+    fb.innerHTML = `
+      <div class="fb-title">✓ Both selections are defensible</div>
+      <p>Good. In the next stage you'll rate these two on certainty and uniqueness — and you'll see that even valid indicators vary in inferential power.</p>
+    `;
+    document.getElementById('s2-check-btn').style.display = 'none';
+    document.getElementById('s2-next-btn').style.display = 'inline-flex';
+    return;
+  }
+  // Otherwise, prompt them to keep picking.
+  const bads = chosen.filter(o => !o.good);
+  fb.className = 'feedback vis fb-error';
+  fb.innerHTML = `
+    <div class="fb-title">${bads.length > 1 ? 'Those picks have problems' : 'That pick has a problem'} — keep trying</div>
+    <p>Read the explanation${bads.length>1?'s':''} on the red option${bads.length>1?'s':''}. ${goodPickedCount > 0 ? 'Your green pick is locked in; pick another indicator and check again.' : 'Pick a different pair and check again.'}</p>
+  `;
+  updateS2Count();
+}
+
+/* ============================================================
+   STAGE 3 — rate the two indicators
+   ============================================================ */
+function buildS3Ratings() {
+  const area = document.getElementById('s3-rating-area');
+  if (state.s2Selected.length < 2) {
+    area.innerHTML = `<div class="card card-note">You haven't selected your two indicators yet. <button class="btn btn-outline" onclick="goTo('screen-s2')">Go back to Stage 2</button></div>`;
+    return;
+  }
+  area.innerHTML = state.s2Selected.map((id, i) => {
+    const ind = S2_INDICATORS.find(o => o.id === id);
+    const r = state.s3Ratings[id] || { certainty: 3, uniqueness: 3, motivation: '' };
+    state.s3Ratings[id] = r;
+    return `
+      <div class="card card-accent">
+        <h3>Indicator ${i+1}</h3>
+        <p style="font-style:italic;">${ind.text}</p>
+        <div class="rating-block">
+          <div class="rating-scale">
+            <label>Certainty</label>
+            <input type="range" min="1" max="5" value="${r.certainty}" id="s3-cert-${id}" oninput="setRating('${id}','certainty', this.value)">
+            <output id="s3-cert-out-${id}">${r.certainty}</output>
+          </div>
+          <div class="rating-scale">
+            <label>Uniqueness</label>
+            <input type="range" min="1" max="5" value="${r.uniqueness}" id="s3-uniq-${id}" oninput="setRating('${id}','uniqueness', this.value)">
+            <output id="s3-uniq-out-${id}">${r.uniqueness}</output>
+          </div>
+          <div class="muted" style="margin-top:6px;">1 = very low · 5 = very high</div>
+        </div>
+        <div class="ft-wrap">
+          <label class="ft-label" for="s3-mot-${id}">Motivate your ratings</label>
+          <p class="muted" style="margin-bottom:8px;">Try to be explicit about <em>why</em>. For example: "We rated this high on certainty because, if rebel dependence on civilians were high, we should expect to see… We rated this low on uniqueness because the same evidence could also be expected if…"</p>
+          <textarea id="s3-mot-${id}" oninput="state.s3Ratings['${id}'].motivation = this.value" placeholder="Our reasoning…">${r.motivation}</textarea>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+function setRating(indId, kind, val) {
+  state.s3Ratings[indId][kind] = parseInt(val, 10);
+  const out = document.getElementById('s3-' + (kind==='certainty'?'cert':'uniq') + '-out-' + indId);
+  if (out) out.textContent = val;
+}
+
+/* ============================================================
+   STAGE 4 — designing the interview pool
+   ============================================================ */
+const S4_CATEGORIES = [
+  { key: 'rebels',    label: 'Rebel insiders' },
+  { key: 'civilians', label: 'Civilians who lived through it' },
+  { key: 'observers', label: 'Third-party observers' },
+  { key: 'outsiders', label: 'Outsiders' },
+];
+const S4_RESPONDENTS = [
+  { id: 'commander', category: 'rebels',
+    label: 'Former rebel commander',
+    desc: 'Knows the overall logistical picture and the rebels\' own view of dependence; may distort to flatter the movement.' },
+  { id: 'rank', category: 'rebels',
+    label: 'Former rank-and-file fighter',
+    desc: 'Knows what reached the fighters\' plate; less reliable about where it came from or in what proportion.' },
+  { id: 'active', category: 'rebels', ethics: true,
+    label: 'Currently active fighters in the bush',
+    desc: 'No real consent under armed conditions; serious researcher-safety concerns and high distortion.' },
+
+  { id: 'elders', category: 'civilians',
+    label: 'Village elders in former rebel areas',
+    desc: 'Watched the giving and the asking; may romanticise the relationship or be reluctant to disclose coercion.' },
+  { id: 'idps', category: 'civilians',
+    label: 'IDPs displaced from rebel areas',
+    desc: 'Often the most candid sources for what civilians actually parted with, though shaped by trauma and distance.' },
+  { id: 'traders', category: 'civilians',
+    label: 'Local market traders',
+    desc: 'Saw goods move through the marketplace and prices shift; a useful third-party-in-the-village view.' },
+
+  { id: 'ngo', category: 'observers',
+    label: 'NGO field workers active during the conflict',
+    desc: 'Outside observers with sustained local presence; viewing angle limited to where their projects ran.' },
+  { id: 'journalists', category: 'observers',
+    label: 'Journalists who covered the conflict',
+    desc: 'Synthesised, sometimes dramatised accounts; most useful for facts they personally witnessed.' },
+  { id: 'children', category: 'observers', ethics: true,
+    label: 'Children of civilians from the period',
+    desc: 'Mostly second-hand; consent and re-traumatisation concerns; weak inferential payoff for this indicator.' },
+
+  { id: 'donors', category: 'outsiders',
+    label: 'Foreign donor representatives',
+    desc: 'Know what came in from outside the country — essential for the denominator of the indicator.' },
+  { id: 'govt', category: 'outsiders',
+    label: 'Government counter-insurgency officers',
+    desc: 'Hostile but informed; useful for ruling out non-civilian supply lines and for cross-checking insider claims.' },
+  { id: 'academics', category: 'outsiders',
+    label: 'Researchers who have already studied the conflict',
+    desc: 'Synthesised secondary view; helpful for orientation but rarely primary evidence on the indicator.' },
+];
+function buildS4() {
+  if (!state.s4Order) {
+    // Shuffle once per session so the order does not telegraph category groupings.
+    const ids = S4_RESPONDENTS.map(r => r.id);
+    for (let i = ids.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+    }
+    state.s4Order = ids;
+  }
+  if (!state.s4Submitted) { hide('s4-feedback'); }
+  renderS4();
+  if (state.s4Submitted && state.s4Feedback) {
+    renderS4Feedback(state.s4Feedback);
+    document.getElementById('s4-submit-btn').style.display = 'none';
+    document.getElementById('s4-next-btn').style.display = 'inline-flex';
+  }
+}
+
+function renderS4() {
+  const availWrap = document.getElementById('s4-available');
+  const poolWrap  = document.getElementById('s4-pool');
+  const available = state.s4Order
+    .filter(id => !state.s4Pool.includes(id))
+    .map(id => S4_RESPONDENTS.find(r => r.id === id));
+  availWrap.innerHTML = available.length
+    ? available.map(r => respondentCardHTML(r, false)).join('')
+    : '<div class="pool-empty">All respondents are in your pool.</div>';
+  if (state.s4Pool.length === 0) {
+    poolWrap.innerHTML = '<div class="pool-empty">Click respondents on the left to move them here.</div>';
+  } else {
+    poolWrap.innerHTML = state.s4Pool.map(id => {
+      const r = S4_RESPONDENTS.find(x => x.id === id);
+      return respondentCardHTML(r, true);
+    }).join('');
+  }
+  const n = state.s4Pool.length;
+  document.getElementById('s4-count').textContent = n;
+  document.getElementById('s4-count-label').textContent =
+    n === 4 ? 'respondent groups selected — ready to submit' : 'respondent groups selected (pick exactly 4)';
+  document.getElementById('s4-submit-btn').disabled = (n !== 4 || state.s4Submitted);
+}
+
+function respondentCardHTML(r, inPool) {
+  const cls = (inPool ? 'in-pool' : '') + (state.s4Submitted ? ' locked' : '');
+  const handler = state.s4Submitted ? '' : `onclick="toggleS4Respondent('${r.id}')"`;
+  return `
+    <div class="respondent-card ${cls}" ${handler}>
+      <div class="rc-label">${r.label}</div>
+    </div>
+  `;
+}
+
+function toggleS4Respondent(id) {
+  if (state.s4Submitted) return;
+  const idx = state.s4Pool.indexOf(id);
+  if (idx > -1) {
+    state.s4Pool.splice(idx, 1);
+  } else if (state.s4Pool.length < 4) {
+    state.s4Pool.push(id);
+  }
+  renderS4();
+}
+
+function submitS4Pool() {
+  if (state.s4Pool.length !== 4 || state.s4Submitted) return;
+  state.s4Submitted = true;
+  const chosen = state.s4Pool.map(id => S4_RESPONDENTS.find(r => r.id === id));
+  const coverage     = new Set(chosen.map(r => r.category));
+  const covered      = S4_CATEGORIES.filter(c => coverage.has(c.key));
+  const missing      = S4_CATEGORIES.filter(c => !coverage.has(c.key));
+  const ethicsPicks  = chosen.filter(r => r.ethics);
+  state.s4Feedback = { coverageSize: coverage.size, covered, missing, ethicsPicks };
+  renderS4Feedback(state.s4Feedback);
+  document.getElementById('s4-submit-btn').style.display = 'none';
+  document.getElementById('s4-next-btn').style.display = 'inline-flex';
+  renderS4();
+}
+
+function renderS4Feedback(f) {
+  const fb = document.getElementById('s4-feedback');
+  let html = '';
+  const coveredList = (f.covered && f.covered.length)
+    ? f.covered.map(c => '<em>' + c.label.toLowerCase() + '</em>').join(', ')
+    : '<em>none</em>';
+  html += `<p><strong>Coverage:</strong> Your pool draws from ${f.coverageSize} of 4 perspective categories. Covered: ${coveredList}.`;
+  if (f.missing.length > 0) {
+    html += ` Missing: <em>${f.missing.map(c => c.label.toLowerCase()).join(', ')}</em>. Any inference you draw will be conditional on the perspectives you did not sample — be ready to defend that absence.`;
+  } else {
+    html += ` Triangulation is built in: you can read each piece of evidence against at least one source from a different vantage point.`;
+  }
+  html += '</p>';
+
+  if (f.ethicsPicks.length) {
+    html += `<p style="margin-top:8px;"><strong>⚠ Ethics flag:</strong> ${f.ethicsPicks.map(r => '<em>' + r.label + '</em>').join(' and ')} ${f.ethicsPicks.length > 1 ? 'are' : 'is'} ethically problematic for this indicator. Reconsider whether the inferential payoff justifies the costs to the people you would speak with.</p>`;
+  }
+
+  const cls = f.ethicsPicks.length ? 'fb-error' : (f.coverageSize >= 3 ? 'fb-success' : 'fb-info');
+  fb.className = 'feedback vis ' + cls;
+  fb.innerHTML = `<div class="fb-title">Composition of your pool</div>${html}`;
+}
+
+/* ============================================================
+   STAGE 6 — mechanism
+   ============================================================ */
+function chooseMech(which) {
+  state.s6Mech = which;
+  document.querySelectorAll('#s6-pick-mech .mech-btn').forEach(b => b.classList.remove('chosen'));
+  event.currentTarget.classList.add('chosen');
+  document.getElementById('s6-indicator-card').style.display = 'block';
+  buildS6List();
+}
+function buildS6List() {
+  const inds = S6_INDICATORS[state.s6Mech];
+  const wrap = document.getElementById('s6-list');
+  wrap.innerHTML = inds.map(o => `
+    <div class="ind-item" id="s6-item-${o.id}" onclick="toggleS6('${o.id}')">
+      <span class="ind-bullet">${o.id.toUpperCase()}</span>
+      <div class="ind-body">
+        <div>${o.text}</div>
+        <div class="ind-feedback" id="s6-fb-${o.id}">${o.explain}</div>
+      </div>
+    </div>
+  `).join('');
+  state.s6Selected = [];
+  state.s6Locked = false;
+  document.getElementById('s6-count').textContent = 0;
+  document.getElementById('s6-count-label').textContent = 'indicators selected (select exactly 2)';
+  document.getElementById('s6-check-btn').disabled = true;
+  document.getElementById('s6-check-btn').style.display = 'inline-flex';
+  document.getElementById('s6-next-btn').style.display = 'none';
+  hide('s6-feedback');
+}
+function toggleS6(id) {
+  if (state.s6Locked) return;
+  const el = document.getElementById('s6-item-' + id);
+  if (el.classList.contains('flagged-bad') || el.classList.contains('flagged-good')) return;
+  const idx = state.s6Selected.indexOf(id);
+  if (idx > -1) {
+    state.s6Selected.splice(idx, 1);
+    el.classList.remove('selected');
+  } else if (state.s6Selected.length < 2) {
+    state.s6Selected.push(id);
+    el.classList.add('selected');
+  }
+  updateS6Count();
+}
+function updateS6Count() {
+  const n = state.s6Selected.length;
+  document.getElementById('s6-count').textContent = n;
+  document.getElementById('s6-count-label').textContent =
+    n === 2 ? 'indicators selected — ready to check' : 'indicators selected (select exactly 2)';
+  document.getElementById('s6-check-btn').disabled = (n !== 2);
+}
+function checkS6() {
+  const inds = S6_INDICATORS[state.s6Mech];
+  const chosen = state.s6Selected.map(id => inds.find(o => o.id === id));
+  const fb = document.getElementById('s6-feedback');
+  chosen.forEach(o => {
+    const el = document.getElementById('s6-item-' + o.id);
+    el.classList.remove('selected');
+    if (o.good) {
+      el.classList.add('flagged-good', 'locked');
+    } else {
+      el.classList.add('flagged-bad', 'locked');
+      state.s6Selected = state.s6Selected.filter(x => x !== o.id);
+    }
+  });
+  const goodPickedCount = state.s6Selected.length;
+  const allGood = chosen.every(o => o.good);
+  if (allGood && goodPickedCount === 2) {
+    state.s6Locked = true;
+    fb.className = 'feedback vis fb-success';
+    fb.innerHTML = `
+      <div class="fb-title">✓ Two defensible indicators</div>
+      <p>Notice that some of the rejected options were ethically problematic, not just inferentially weak. In qualitative fieldwork, indicator choice is also a duty-of-care choice.</p>
+    `;
+    document.getElementById('s6-check-btn').style.display = 'none';
+    document.getElementById('s6-next-btn').style.display = 'inline-flex';
+    return;
+  }
+  const bads = chosen.filter(o => !o.good);
+  const ethicsBad = bads.some(o => o.ethics);
+  fb.className = 'feedback vis fb-error';
+  fb.innerHTML = `
+    <div class="fb-title">${bads.length > 1 ? 'Those picks have problems' : 'That pick has a problem'} — keep trying</div>
+    <p>${ethicsBad ? 'One of your selections is <strong>ethically inappropriate</strong>. ' : ''}Read the explanation${bads.length>1?'s':''} on the red option${bads.length>1?'s':''}. ${goodPickedCount > 0 ? 'Your green pick is locked in; pick another indicator and check again.' : 'Pick a different pair and check again.'}</p>
+  `;
+}
+
+/* ============================================================
+   STAGE 8 — excerpts
+   ============================================================ */
+/* Holds the currently-highlighted-but-not-yet-submitted option per slot. */
+const s8Pending = {};
+
+function buildS8Excerpt(exId, slot, nextScreen) {
+  const ex = S8_EXCERPTS.find(e => e.id === exId);
+  const wrap = document.getElementById(slot + '-body');
+  wrap.innerHTML = `
+    <div class="ex-layout">
+      <div class="ex-image-wrap">
+        <img src="${ex.image}" alt="${ex.imageAlt}">
+      </div>
+      <div>
+        <div class="card card-accent" style="margin-bottom:0;">
+          <div class="excerpt" style="margin-top:0;">
+            ${ex.text}
+            <span class="ex-source">${ex.kind}</span>
+          </div>
+          <p class="muted">Which observable implication does this excerpt most directly support?</p>
+          <div id="${slot}-opts" style="margin-top:8px;">
+            ${ex.options.map(o => `
+              <button class="mcq-option" id="${slot}-opt-${o.id}" onclick="pickS8('${exId}','${o.id}','${slot}')">
+                <span class="opt-label">${o.id.toUpperCase()}</span>
+                <span>${o.text}</span>
+              </button>
+            `).join('')}
+          </div>
+          <div class="btn-row" style="margin-top:14px;">
+            <button class="btn btn-primary" id="${slot}-submit-btn" disabled onclick="submitS8('${exId}','${slot}')">Submit answer</button>
+          </div>
+          <div class="feedback" id="${slot}-fb"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="${slot}-next-btn" disabled onclick="goTo('${nextScreen}')">
+            ${nextScreen === 'screen-s8e' ? 'Continue' : (nextScreen === 'screen-s9' ? 'Continue to ethics' : 'Next excerpt')} &rarr;
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  s8Pending[slot] = null;
+  // If already answered correctly, restore the locked-in state.
+  if (state.s8Answers[exId]) {
+    ex.options.forEach(o => {
+      const b = document.getElementById(`${slot}-opt-${o.id}`);
+      b.classList.add('locked');
+      if (o.correct) b.classList.add('correct');
+    });
+    const fb = document.getElementById(`${slot}-fb`);
+    fb.className = 'feedback vis fb-success';
+    fb.innerHTML = `<div class="fb-title">✓ Correct</div><p>${ex.explain}</p>`;
+    document.getElementById(`${slot}-submit-btn`).style.display = 'none';
+    document.getElementById(`${slot}-next-btn`).disabled = false;
+  }
+}
+/* First click: highlight a candidate but don't commit. */
+function pickS8(exId, optId, slot) {
+  if (state.s8Answers[exId]) return;
+  const btn = document.getElementById(`${slot}-opt-${optId}`);
+  if (btn.classList.contains('locked')) return; // already ruled out
+  const ex = S8_EXCERPTS.find(e => e.id === exId);
+  ex.options.forEach(o => {
+    const b = document.getElementById(`${slot}-opt-${o.id}`);
+    if (!b.classList.contains('locked')) b.classList.remove('selected');
+  });
+  btn.classList.add('selected');
+  s8Pending[slot] = optId;
+  document.getElementById(`${slot}-submit-btn`).disabled = false;
+}
+/* Submit click: commit the highlighted option, then lock it (right or wrong). */
+function submitS8(exId, slot) {
+  const optId = s8Pending[slot];
+  if (!optId) return;
+  const ex = S8_EXCERPTS.find(e => e.id === exId);
+  const chosen = ex.options.find(o => o.id === optId);
+  const btn = document.getElementById(`${slot}-opt-${optId}`);
+  const fb  = document.getElementById(`${slot}-fb`);
+
+  if (chosen.correct) {
+    state.s8Answers[exId] = optId;
+    ex.options.forEach(o => {
+      const b = document.getElementById(`${slot}-opt-${o.id}`);
+      b.classList.remove('selected');
+      b.classList.add('locked');
+      if (o.correct) b.classList.add('correct');
+    });
+    fb.className = 'feedback vis fb-success';
+    fb.innerHTML = `<div class="fb-title">✓ Correct</div><p>${ex.explain}</p>`;
+    document.getElementById(`${slot}-submit-btn`).style.display = 'none';
+    document.getElementById(`${slot}-next-btn`).disabled = false;
+  } else {
+    btn.classList.remove('selected');
+    btn.classList.add('incorrect', 'locked');
+    fb.className = 'feedback vis fb-error';
+    fb.innerHTML = `
+      <div class="fb-title">Not quite — try again</div>
+      <p>That option doesn't best fit the excerpt. Read it once more and pick another option, then submit again.</p>
+    `;
+    s8Pending[slot] = null;
+    document.getElementById(`${slot}-submit-btn`).disabled = true;
+  }
+}
+
+/* ============================================================
+   STAGE 8 — positionality (team builder)
+   ============================================================ */
+const S8POS_PROFILES = [
+  { id: 'local',
+    label: 'Local PhD candidate from the conflict region',
+    desc: 'Same ethnicity as the rebels, raised in a town twenty kilometres from the former front line. Speaks the regional language as a first language. Funded by the national university.' },
+  { id: 'european',
+    label: 'European postdoc with no regional language',
+    desc: 'Comparative civil war scholar based at a Western European university. Works entirely through translators. No prior ties to the country; funded by a Horizon Europe grant.' },
+  { id: 'diaspora',
+    label: 'Diaspora researcher returning to the country',
+    desc: 'Born in the country, but his family fled the rebel-controlled area in the 1990s. Speaks the regional language imperfectly. Currently affiliated with a North American university; has not lived in the country for twenty years.' },
+  { id: 'ngo',
+    label: 'Researcher embedded with a civilian-protection NGO',
+    desc: 'Based at a national NGO that ran protection programmes for civilian survivors during the conflict. The NGO is widely trusted by survivors.' },
+  { id: 'officer',
+    label: 'Retired army officer doing a PhD',
+    desc: 'Served as a junior officer in the Swedish army of a Western, in a unit posted to the eastern districts. Now a PhD candidate at the staff college; mid-career, no language gap.' },
+];
+
+const S8POS_PAIR_FEEDBACK = {
+  'local+european':
+    'A common, defensible team. The local PhD opens trust and language; the European postdoc supplies institutional distance and can ask "naïve" questions that the local researcher cannot. Watch the asymmetry: in the local context the postdoc may be assumed to outrank the PhD, and that hierarchy can shape who speaks for the team and who is read as the junior partner.',
+  'local+diaspora':
+    'Strong on language and ethnic familiarity, weak on perceived neutrality. Both will be read as having a stake. Civilian victims of rebel violence in particular may withhold testimony, fearing the team is sympathetic to the rebel side. The pair leaves you exposed to suspicion from government and donor interlocutors.',
+  'local+ngo':
+    'Excellent civilian-side access — the NGO affiliation amplifies the local PhD\'s reach into survivor communities. The flip side: former rebel commanders are likely to refuse interviews or distrust the team, and government officials will read the NGO\'s reputation onto the project.',
+  'local+officer':
+    'An unusual but powerful combination. The local PhD opens civilian and possibly rebel access; the retired officer opens government archives and military interlocutors that civilian researchers struggle to reach. Significant tension to manage: the two researchers\' presence together in a former rebel area may itself become the conversation before any interview begins.',
+  'european+diaspora':
+    'Two outsiders of different kinds. The European brings institutional distance and Western funder credibility; the diaspora researcher brings language and lived knowledge. Joint blind spot: neither has fresh on-the-ground knowledge of present-day local politics, and both may be perceived as "arriving from elsewhere" by those they hope to interview.',
+  'european+ngo':
+    'Two outsider-aligned researchers coordinated through the NGO\'s networks. Strong on civilian-survivor access, structured by the NGO\'s protection programmes. The European\'s presence may amplify the NGO\'s institutional voice. Joint gap: former rebels and government officials will both be hard to reach.',
+  'european+officer':
+    'An odd team that nevertheless covers institutional and security-sector ground. The European brings Western funding credibility; the retired officer brings access to government and military sources. Joint gap: civilian survivors and former rebels alike are likely to be guarded with this team, and the officer\'s presence may signal a state-aligned project to communities still wary of the army.',
+  'diaspora+ngo':
+    'Strong on the survivor side, particularly for communities aligned with the diaspora\'s background. The NGO provides infrastructure; the diaspora researcher provides language and lived familiarity. Risk: both may be read as "returnees" or "outsider sympathisers" by those who stayed and aligned with the rebels.',
+  'diaspora+officer':
+    'A team that crosses lines the conflict made hard to cross. The diaspora researcher\'s presence may signal civilian-survivor sympathies; the officer\'s presence may signal state alignment. Together they may surprise interlocutors enough to open conversations — or may be too contradictory to be coherent. Worth thinking carefully about how the team is introduced at each site.',
+  'ngo+officer':
+    'A team that combines civilian-survivor infrastructure with state-security access. The contradiction is salient. Each researcher will likely close doors the other opens, and the team\'s joint presence will be read politically before any interview begins. Highly capable on paper, fragile in practice.',
+};
+
+function buildS8Pos() {
+  const wrap = document.getElementById('s8pos-profiles');
+  wrap.innerHTML = S8POS_PROFILES.map(p => `
+    <div class="respondent-card" id="s8pos-card-${p.id}" onclick="toggleS8Pos('${p.id}')">
+      <div>
+        <div class="rc-label">${p.label}</div>
+        <div class="rc-desc">${p.desc}</div>
+      </div>
+    </div>
+  `).join('');
+  // Restore selection state
+  state.s8posPool.forEach(id => {
+    const el = document.getElementById('s8pos-card-' + id);
+    if (el) el.classList.add('in-pool');
+  });
+  // Restore textarea
+  const ta = document.getElementById('s8pos-reflect');
+  ta.value = state.s8posReflect || '';
+  ta.oninput = function() { state.s8posReflect = this.value; };
+  // Counter + submit
+  renderS8PosCounter();
+  if (state.s8posSubmitted) {
+    lockS8Pos();
+    showS8PosFeedback();
+    document.getElementById('s8pos-submit-btn').style.display = 'none';
+    document.getElementById('s8pos-next-btn').style.display = 'inline-flex';
+  } else {
+    hide('s8pos-feedback');
+  }
+}
+
+function renderS8PosCounter() {
+  const n = state.s8posPool.length;
+  document.getElementById('s8pos-count').textContent = n;
+  document.getElementById('s8pos-count-label').textContent =
+    n === 2 ? 'researchers selected — ready to submit' : 'researchers selected (pick exactly 2)';
+  document.getElementById('s8pos-submit-btn').disabled = (n !== 2 || state.s8posSubmitted);
+}
+
+function toggleS8Pos(id) {
+  if (state.s8posSubmitted) return;
+  const el = document.getElementById('s8pos-card-' + id);
+  const idx = state.s8posPool.indexOf(id);
+  if (idx > -1) {
+    state.s8posPool.splice(idx, 1);
+    el.classList.remove('in-pool');
+  } else if (state.s8posPool.length < 2) {
+    state.s8posPool.push(id);
+    el.classList.add('in-pool');
+  }
+  renderS8PosCounter();
+}
+
+function lockS8Pos() {
+  S8POS_PROFILES.forEach(p => {
+    const el = document.getElementById('s8pos-card-' + p.id);
+    if (el) el.classList.add('locked');
+  });
+  const ta = document.getElementById('s8pos-reflect');
+  if (ta) ta.disabled = true;
+}
+
+function submitS8Pos() {
+  if (state.s8posPool.length !== 2 || state.s8posSubmitted) return;
+  state.s8posSubmitted = true;
+  lockS8Pos();
+  showS8PosFeedback();
+  document.getElementById('s8pos-submit-btn').style.display = 'none';
+  document.getElementById('s8pos-next-btn').style.display = 'inline-flex';
+}
+
+function showS8PosFeedback() {
+  const key = [...state.s8posPool].sort().join('+');
+  const note = S8POS_PAIR_FEEDBACK[key] || 'Your pair opens some doors and closes others — name them explicitly in your reflection.';
+  const fb = document.getElementById('s8pos-feedback');
+  fb.className = 'feedback vis fb-info';
+  fb.innerHTML = `<div class="fb-title">Reading your team</div><p>${note}</p>`;
+}
+
+/* ============================================================
+   STAGE 8E — the silent archive
+   ============================================================ */
+function buildS8E() {
+  const wrap = document.getElementById('s8e-options');
+  wrap.innerHTML = S8E_OPTIONS.map(o => `
+    <button class="mcq-option" id="s8e-opt-${o.id}" onclick="pickS8E('${o.id}')">
+      <span class="opt-label">${o.id.toUpperCase()}</span>
+      <span>${o.text}</span>
+    </button>
+  `).join('');
+  // Restore textarea
+  const ta = document.getElementById('s8e-motivation');
+  ta.value = state.s8eMotivation || '';
+  ta.oninput = function() { state.s8eMotivation = this.value; updateS8EReady(); };
+  if (state.s8eSubmitted && state.s8eChoice) {
+    state.s8ePending = state.s8eChoice;
+    lockAndRevealS8E();
+  } else {
+    state.s8ePending = state.s8eChoice;
+    if (state.s8ePending) {
+      const b = document.getElementById('s8e-opt-' + state.s8ePending);
+      if (b) b.classList.add('selected');
+    }
+    hide('s8e-feedback');
+    document.getElementById('s8e-next-btn').disabled = true;
+    updateS8EReady();
+  }
+}
+function pickS8E(id) {
+  if (state.s8eSubmitted) return;
+  state.s8ePending = id;
+  S8E_OPTIONS.forEach(o => {
+    const b = document.getElementById('s8e-opt-' + o.id);
+    if (!b.classList.contains('locked')) b.classList.remove('selected');
+  });
+  document.getElementById('s8e-opt-' + id).classList.add('selected');
+  updateS8EReady();
+}
+function updateS8EReady() {
+  const ready = !!state.s8ePending && (state.s8eMotivation || '').trim().length > 0 && !state.s8eSubmitted;
+  document.getElementById('s8e-submit-btn').disabled = !ready;
+}
+function submitS8E() {
+  if (state.s8eSubmitted) return;
+  if (!state.s8ePending || !(state.s8eMotivation || '').trim()) return;
+  state.s8eChoice = state.s8ePending;
+  state.s8eSubmitted = true;
+  lockAndRevealS8E();
+}
+function lockAndRevealS8E() {
+  const id = state.s8eChoice;
+  const chosen = S8E_OPTIONS.find(o => o.id === id);
+  S8E_OPTIONS.forEach(o => {
+    const b = document.getElementById('s8e-opt-' + o.id);
+    b.classList.add('locked');
+    b.classList.remove('selected');
+    if (o.id === id) b.classList.add('selected');
+  });
+  const ta = document.getElementById('s8e-motivation');
+  if (ta) ta.disabled = true;
+  const submitBtn = document.getElementById('s8e-submit-btn');
+  if (submitBtn) submitBtn.style.display = 'none';
+  document.getElementById('s8e-next-btn').disabled = false;
+  const fb = document.getElementById('s8e-feedback');
+  fb.className = 'feedback vis fb-info';
+  fb.innerHTML = `
+    <div class="fb-title">Something to consider</div>
+    <p>${chosen.explain}</p>
+  `;
+}
+
+/* ============================================================
+   STAGE 8F — "What just happened?" (one random vignette)
+   ============================================================ */
+function buildS8F() {
+  if (!state.s8fVariant) {
+    const pick = S8F_VIGNETTES[Math.floor(Math.random() * S8F_VIGNETTES.length)];
+    state.s8fVariant = pick.id;
+  }
+  const v = S8F_VIGNETTES.find(x => x.id === state.s8fVariant);
+  const wrap = document.getElementById('s8f-body');
+  wrap.innerHTML = `
+    <div class="card card-accent">
+      <h3>${v.title}</h3>
+      <div class="excerpt">${v.body}</div>
+      <p class="muted">${v.question}</p>
+      <div id="s8f-options" style="margin-top:8px;">
+        ${v.options.map(o => `
+          <button class="mcq-option" id="s8f-opt-${o.id}" onclick="pickS8F('${o.id}')">
+            <span class="opt-label">${o.id.toUpperCase()}</span>
+            <span>${o.text}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div class="ft-wrap" style="margin-top:14px;">
+        <label class="ft-label" for="s8f-motivation">Motivate your group's choice</label>
+        <textarea id="s8f-motivation" placeholder="We picked this option because…"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="s8f-submit-btn" disabled onclick="submitS8F()">Submit</button>
+      </div>
+      <div class="feedback" id="s8f-feedback"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="s8f-next-btn" disabled onclick="goTo('screen-s8g')">Continue &rarr;</button>
+    </div>
+  `;
+  const ta = document.getElementById('s8f-motivation');
+  ta.value = state.s8fMotivation || '';
+  ta.oninput = function() { state.s8fMotivation = this.value; updateS8FReady(); };
+  if (state.s8fSubmitted && state.s8fChoice) {
+    state.s8fPending = state.s8fChoice;
+    lockAndRevealS8F();
+  } else {
+    state.s8fPending = state.s8fChoice;
+    if (state.s8fPending) {
+      const b = document.getElementById('s8f-opt-' + state.s8fPending);
+      if (b) b.classList.add('selected');
+    }
+    updateS8FReady();
+  }
+}
+function pickS8F(id) {
+  if (state.s8fSubmitted) return;
+  const v = S8F_VIGNETTES.find(x => x.id === state.s8fVariant);
+  state.s8fPending = id;
+  v.options.forEach(o => {
+    const b = document.getElementById('s8f-opt-' + o.id);
+    if (!b.classList.contains('locked')) b.classList.remove('selected');
+  });
+  document.getElementById('s8f-opt-' + id).classList.add('selected');
+  updateS8FReady();
+}
+function updateS8FReady() {
+  const ready = !!state.s8fPending && (state.s8fMotivation || '').trim().length > 0 && !state.s8fSubmitted;
+  const btn = document.getElementById('s8f-submit-btn');
+  if (btn) btn.disabled = !ready;
+}
+function submitS8F() {
+  if (state.s8fSubmitted) return;
+  if (!state.s8fPending || !(state.s8fMotivation || '').trim()) return;
+  state.s8fChoice = state.s8fPending;
+  state.s8fSubmitted = true;
+  lockAndRevealS8F();
+}
+function lockAndRevealS8F() {
+  const v = S8F_VIGNETTES.find(x => x.id === state.s8fVariant);
+  const id = state.s8fChoice;
+  const chosen = v.options.find(o => o.id === id);
+  v.options.forEach(o => {
+    const b = document.getElementById('s8f-opt-' + o.id);
+    b.classList.add('locked');
+    b.classList.remove('selected');
+    if (o.id === id) b.classList.add('selected');
+  });
+  const ta = document.getElementById('s8f-motivation');
+  if (ta) ta.disabled = true;
+  const submitBtn = document.getElementById('s8f-submit-btn');
+  if (submitBtn) submitBtn.style.display = 'none';
+  const fb = document.getElementById('s8f-feedback');
+  fb.className = 'feedback vis fb-info';
+  fb.innerHTML = `
+    <div class="fb-title">Something to consider</div>
+    <p>${chosen.explain}</p>
+  `;
+  document.getElementById('s8f-next-btn').disabled = false;
+}
+
+/* ============================================================
+   STAGE 8G — conference critique (gender blind spots)
+   ============================================================ */
+const S8G_BLIND_SPOTS = [
+  { id: 'iv',       short: 'The IV concept itself',
+    text: 'Did "dependence on civilians" implicitly treat civilian support as gender-neutral when much of the actual labour (food preparation, shelter, message-running, intelligence-gathering through markets and households) is performed by women?',
+    explain: 'Rebel logistics often rest disproportionately on women\'s labour. If you did not disaggregate "civilian support" by gender, your IV may be measuring women\'s support without naming it as such — which means your indicators, your interview pool, and your inferences are all silently gendered.' },
+  { id: 'dv',       short: 'The DV definition',
+    text: 'Did your definition of "restraint" capture sexual and gender-based violence (SGBV), or only the more visible categories of killing, looting, and physical assault?',
+    explain: 'Many armed groups exhibit restraint in lethal violence while engaging in extensive SGBV. If restraint is defined only through visible harms, a group that quietly assaults women but does not kill them comes out looking "restrained" — and your theory predicts the wrong outcome.' },
+  { id: 'cost',     short: 'The cost mechanism',
+    text: 'Does the cost-of-abuse logic still hold if some abuses (SGBV especially) are concealed from outside observers and therefore do not trigger the loss of civilian support the mechanism relies on?',
+    explain: 'The mechanism assumes abuse is observed and punished by withdrawal of support. SGBV is often hidden, normalised, or punished only against victims. The mechanism may systematically underpredict abuse of women, even where civilian dependence is high.' },
+  { id: 'info',     short: 'The information mechanism',
+    text: 'Did the analysis recognise that women often act as informants — because of gendered patterns of movement, market access, and household networks that men do not have?',
+    explain: 'Women\'s mobility, social networks, and structural roles in households often make them the primary source of fine-grained intelligence in civilian–rebel relationships. A gender-blind analysis routinely undercounts this channel and the women who staff it.' },
+  { id: 'pool',     short: 'The interview pool',
+    text: 'Was your interview pool skewed toward men — commanders, fighters, officers, donors, traders — without deliberately seeking women respondents?',
+    explain: 'Most of the obvious respondent groups in this case are male-coded. Without deliberately including women among your respondents (and naming them as such in the design), the evidence you collect is already filtered through a male lens before you read a single transcript.' },
+  { id: 'team',     short: 'Your research team',
+    text: 'Did your team\'s own gender composition shape what informants would say to them — particularly on topics like SGBV, family life, or women\'s wartime roles?',
+    explain: 'Female fighters, civilian survivors of SGBV, and women in former conflict areas are routinely more willing to speak to women researchers about gendered experiences. The team you assembled may have foreclosed conversations before they could start.' },
+  { id: 'archive',  short: 'The silent archive',
+    text: 'When you found no manuals on conduct toward civilians, did you ask whether rules about gendered behaviours (SGBV, marriage, sexual conduct, women\'s movement) were codified separately, transmitted only orally, or never written at all?',
+    explain: 'Many armed groups have explicit oral norms about women — marriage, sexual access, dress, movement — that never reach the written record. An "empty" archive on civilian conduct may not be empty on gender, if you had known to ask differently.' },
+  { id: 'excerpts', short: 'The field excerpts',
+    text: 'When you read the interview and document excerpts, did you reason about the gender of the speakers, the gender of the people they described, and the kinds of violence they did and did not mention?',
+    explain: 'Each excerpt was produced by a specific person describing specific others. Whose violence is being described? Whose suffering? Whose voice is preserved in the archive at all? Re-reading the excerpts with these questions in mind changes which inferences they support.' },
+];
+
+function buildS8G() {
+  // Render the eight blind-spot cards
+  const list = document.getElementById('s8g-list');
+  list.innerHTML = S8G_BLIND_SPOTS.map((b, i) => `
+    <div class="ind-item" id="s8g-item-${b.id}" onclick="toggleS8G('${b.id}')">
+      <span class="ind-bullet">${i + 1}</span>
+      <div class="ind-body">
+        <div><strong>${b.short}.</strong> ${b.text}</div>
+        <div class="ind-feedback" id="s8g-fb-${b.id}">${b.explain}</div>
+      </div>
+    </div>
+  `).join('');
+  // Restore previously flagged items
+  state.s8gFlagged.forEach(id => {
+    const el = document.getElementById('s8g-item-' + id);
+    if (el) el.classList.add('selected');
+  });
+  renderS8GCounter();
+  renderS8GBiggest();
+  if (state.s8gSubmitted) {
+    lockS8G();
+    showS8GFeedback();
+    document.getElementById('s8g-submit-btn').style.display = 'none';
+    document.getElementById('s8g-next-btn').style.display = 'inline-flex';
+  } else {
+    hide('s8g-feedback');
+  }
+}
+
+function renderS8GCounter() {
+  const n = state.s8gFlagged.length;
+  document.getElementById('s8g-count').textContent = n;
+  document.getElementById('s8g-count-label').textContent =
+    n === 0 ? 'blind spots flagged' : (n === 1 ? 'blind spot flagged' : 'blind spots flagged');
+}
+
+function renderS8GBiggest() {
+  const wrap   = document.getElementById('s8g-biggest-wrap');
+  const optsEl = document.getElementById('s8g-biggest-options');
+  if (state.s8gFlagged.length === 0) {
+    wrap.style.display = 'none';
+    state.s8gBiggest = null;
+    return;
+  }
+  wrap.style.display = 'block';
+  optsEl.innerHTML = state.s8gFlagged.map(id => {
+    const b = S8G_BLIND_SPOTS.find(x => x.id === id);
+    const checked = state.s8gBiggest === id ? 'checked' : '';
+    const disabled = state.s8gSubmitted ? 'disabled' : '';
+    return `
+      <label style="display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:6px; cursor:${state.s8gSubmitted ? 'default' : 'pointer'}; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size:0.92rem;">
+        <input type="radio" name="s8g-biggest" value="${id}" ${checked} ${disabled} onchange="setS8GBiggest('${id}')">
+        <span>${b.short}</span>
+      </label>
+    `;
+  }).join('');
+}
+
+function toggleS8G(id) {
+  if (state.s8gSubmitted) return;
+  const el = document.getElementById('s8g-item-' + id);
+  const idx = state.s8gFlagged.indexOf(id);
+  if (idx > -1) {
+    state.s8gFlagged.splice(idx, 1);
+    el.classList.remove('selected');
+    if (state.s8gBiggest === id) state.s8gBiggest = null;
+  } else {
+    state.s8gFlagged.push(id);
+    el.classList.add('selected');
+  }
+  renderS8GCounter();
+  renderS8GBiggest();
+}
+
+function setS8GBiggest(id) {
+  if (state.s8gSubmitted) return;
+  state.s8gBiggest = id;
+}
+
+function lockS8G() {
+  S8G_BLIND_SPOTS.forEach(b => {
+    const el = document.getElementById('s8g-item-' + b.id);
+    if (!el) return;
+    el.classList.add('locked');
+    if (state.s8gFlagged.includes(b.id)) {
+      el.classList.add('flagged-good');
+    }
+  });
+  renderS8GBiggest(); // re-render with disabled radios
+}
+
+function submitS8G() {
+  if (state.s8gSubmitted) return;
+  const fb = document.getElementById('s8g-feedback');
+  if (state.s8gFlagged.length === 0) {
+    fb.className = 'feedback vis fb-info';
+    fb.innerHTML = `
+      <div class="fb-title">A gentle nudge</div>
+      <p>Every researcher has blind spots — the discipline isn't to claim that you don't, but to keep looking for them. Take another honest pass through the list and flag the places where, on reflection, gender did not get the attention it might have deserved.</p>
+    `;
+    return;
+  }
+  if (!state.s8gBiggest) {
+    fb.className = 'feedback vis fb-info';
+    fb.innerHTML = `
+      <div class="fb-title">One more step</div>
+      <p>You\'ve flagged ${state.s8gFlagged.length} blind spot${state.s8gFlagged.length > 1 ? 's' : ''}. Now mark the one you believe could have the biggest impact on your findings.</p>
+    `;
+    return;
+  }
+  state.s8gSubmitted = true;
+  lockS8G();
+  showS8GFeedback();
+  document.getElementById('s8g-submit-btn').style.display = 'none';
+  document.getElementById('s8g-next-btn').style.display = 'inline-flex';
+}
+
+function showS8GFeedback() {
+  const fb = document.getElementById('s8g-feedback');
+  const biggest = S8G_BLIND_SPOTS.find(b => b.id === state.s8gBiggest);
+  const others  = state.s8gFlagged.filter(id => id !== state.s8gBiggest).map(id => S8G_BLIND_SPOTS.find(b => b.id === id));
+  let html = `<p><strong>Your team\'s most consequential blind spot:</strong></p>
+              <div style="background:#fff; border:1px solid #e0d0a0; border-left:4px solid var(--accent); border-radius:6px; padding:12px 16px; margin:8px 0 14px;">
+                <p style="margin:0 0 6px;"><strong>${biggest.short}.</strong></p>
+                <p style="margin:0;">${biggest.explain}</p>
+              </div>`;
+  if (others.length) {
+    html += `<p><strong>Other blind spots your team flagged:</strong></p><ul style="margin:6px 0 0 20px;">`;
+    others.forEach(b => { html += `<li><strong>${b.short}.</strong> ${b.explain}</li>`; });
+    html += '</ul>';
+  }
+  fb.className = 'feedback vis fb-info';
+  fb.innerHTML = `<div class="fb-title">On reflection</div>${html}`;
+}
+
+/* ============================================================
+   STAGE 9 — randomised ethics dilemma
+   ============================================================ */
+function buildS9() {
+  if (!state.s9Variant) {
+    const keys = Object.keys(S9_VARIANTS);
+    state.s9Variant = keys[Math.floor(Math.random() * keys.length)];
+  }
+  const v = S9_VARIANTS[state.s9Variant];
+  document.getElementById('s9-kicker').textContent = v.kicker;
+  document.getElementById('s9-title').textContent = v.title;
+  document.getElementById('s9-sub').textContent = v.sub;
+  document.getElementById('s9-body-text').innerHTML = v.body;
+  const ta = document.getElementById('s9-response');
+  ta.placeholder = v.placeholder;
+  ta.value = state.s9Response || '';
+}
+
+/* ============================================================
+   GROUP MEMBERS
+   ============================================================ */
+function saveGroup() {
+  state.groupMembers = [1,2,3,4,5]
+    .map(i => document.getElementById('gm'+i).value.trim())
+    .filter(v => v.length > 0);
+  goTo('screen-intro');
+}
+
+/* ============================================================
+   STAGE 9 binding
+   ============================================================ */
+document.addEventListener('input', e => {
+  if (e.target.id === 's5-ind1')        state.s5Ind1 = e.target.value;
+  if (e.target.id === 's5-ind2')        state.s5Ind2 = e.target.value;
+  if (e.target.id === 's9-response')    state.s9Response = e.target.value;
+});
+
+/* ============================================================
+   SUMMARY + DOWNLOAD
+   ============================================================ */
+function esc(str) { return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* Read-only render of the student's causal diagram (for the in-page summary). */
+function liveDiagramReadOnlyHTML() {
+  const cell = (txt, fallback) => {
+    const v = (txt || '').trim();
+    return v ? esc(v) : `<span style="color:var(--text-muted); font-style:italic;">${esc(fallback)}</span>`;
+  };
+  return `
+    <div class="live-diagram">
+      <div class="ld-grid">
+        <div class="ld-box ld-iv">Rebel dependence on civilian support</div>
+        <div class="ld-arrow">→</div>
+        <div class="ld-box mech">${cell(state.s1bM1a, 'Mechanism 1 — step 1')}</div>
+        <div class="ld-arrow">→</div>
+        <div class="ld-box mech">${cell(state.s1bM1b, 'Mechanism 1 — step 2')}</div>
+        <div class="ld-arrow">→</div>
+        <div class="ld-arrow">→</div>
+        <div class="ld-box mech">${cell(state.s1bM2a, 'Mechanism 2 — step 1')}</div>
+        <div class="ld-arrow">→</div>
+        <div class="ld-box mech">${cell(state.s1bM2b, 'Mechanism 2 — step 2')}</div>
+        <div class="ld-arrow">→</div>
+        <div class="ld-box ld-dv">Rebel restraint vis-à-vis civilians</div>
+      </div>
+    </div>
+  `;
+}
+
+/* Self-contained print version of the diagram (inline CSS for the download window). */
+function liveDiagramPrintHTML() {
+  const cell = (txt, fallback) => {
+    const v = (txt || '').trim();
+    return v ? esc(v) : `<span style="color:#888; font-style:italic;">${esc(fallback)}</span>`;
+  };
+  const box = 'border:1.5px solid #b39669; background:#efe7d7; border-radius:8px; padding:10px 12px; font-size:11px; line-height:1.4; text-align:center; min-height:60px; display:flex; align-items:center; justify-content:center; font-family:sans-serif;';
+  const mech = 'border:1.5px solid #c8b89c; background:#f6f2ea; border-radius:8px; padding:10px 12px; font-size:11px; line-height:1.4; text-align:center; min-height:60px; display:flex; align-items:center; justify-content:center; font-family:sans-serif;';
+  const arrow = 'text-align:center; font-size:18px; font-weight:700; color:#1c1c1c;';
+  return `
+    <div style="background:#fdfaf3; border:1px solid #e4e0d8; border-radius:8px; padding:18px; margin:8px 0 14px;">
+      <div style="display:grid; grid-template-columns:1.4fr 0.35fr 1.4fr 0.3fr 1.4fr 0.35fr 1.4fr; grid-template-rows:1fr 1fr; gap:8px 4px; align-items:center;">
+        <div style="${box} grid-column:1; grid-row:1 / span 2;">Rebel dependence on civilian support</div>
+        <div style="${arrow}">→</div>
+        <div style="${mech}">${cell(state.s1bM1a, 'Mechanism 1 — step 1')}</div>
+        <div style="${arrow}">→</div>
+        <div style="${mech}">${cell(state.s1bM1b, 'Mechanism 1 — step 2')}</div>
+        <div style="${arrow}">→</div>
+        <div style="${arrow}">→</div>
+        <div style="${mech}">${cell(state.s1bM2a, 'Mechanism 2 — step 1')}</div>
+        <div style="${arrow}">→</div>
+        <div style="${mech}">${cell(state.s1bM2b, 'Mechanism 2 — step 2')}</div>
+        <div style="${arrow}">→</div>
+        <div style="${box} grid-column:7; grid-row:1 / span 2;">Rebel restraint vis-à-vis civilians</div>
+      </div>
+    </div>
+  `;
+}
+
+function summaryHTMLBlocks() {
+  const ivDef = state.s1a ? S1A_OPTIONS.find(o => o.id === state.s1a) : null;
+  const ratingBlocks = state.s2Selected.map((id, i) => {
+    const ind = S2_INDICATORS.find(o => o.id === id);
+    const r = state.s3Ratings[id] || {};
+    return `
+      <p><strong>Indicator ${i+1}:</strong> ${esc(ind.text)}</p>
+      <p>Certainty: <strong>${r.certainty || '—'}/5</strong> · Uniqueness: <strong>${r.uniqueness || '—'}/5</strong></p>
+      <p><em>Motivation:</em></p>
+      <div class="answer">${esc(r.motivation) || '(no answer recorded)'}</div>
+    `;
+  }).join('');
+  const s4Ind = state.s2Selected.length ? S2_INDICATORS.find(o => o.id === state.s2Selected[0]) : null;
+  const mechName = state.s6Mech === 'cost' ? 'Mechanism 1 — cost of abuse' :
+                   state.s6Mech === 'info' ? 'Mechanism 2 — information' : '—';
+  const s6Inds = state.s6Mech ? state.s6Selected.map(id => S6_INDICATORS[state.s6Mech].find(o => o.id === id)) : [];
+  const s8Blocks = S8_EXCERPTS.map(ex => {
+    const a = state.s8Answers[ex.id];
+    const chosen = a ? ex.options.find(o => o.id === a) : null;
+    return `<li><strong>${esc(ex.kind)}</strong>: ${a ? `selected "${esc(chosen.text)}"` : '(no answer)'}</li>`;
+  }).join('');
+
+  // Stage 4 — interview pool
+  const s4Resps = state.s4Pool.map(id => S4_RESPONDENTS.find(r => r.id === id));
+  const s4PoolBlock = s4Resps.length
+    ? `<p><strong>Group's chosen pool:</strong></p>
+       <ul style="margin-left:20px;">${s4Resps.map(r => `<li>${esc(r.label)}</li>`).join('')}</ul>
+       ${state.s4Feedback ? `<p style="margin-top:8px;"><em>Composition: ${state.s4Feedback.coverageSize} of 4 categories covered${state.s4Feedback.covered && state.s4Feedback.covered.length ? ' (' + state.s4Feedback.covered.map(c => c.label.toLowerCase()).join(', ') + ')' : ''}${state.s4Feedback.ethicsPicks.length ? '; ' + state.s4Feedback.ethicsPicks.length + ' ethics flag' + (state.s4Feedback.ethicsPicks.length > 1 ? 's' : '') : ''}.</em></p>` : ''}`
+    : '<div class="card-note">(no pool submitted)</div>';
+
+  // 8E — silent archive
+  const s8eChosen = state.s8eChoice ? S8E_OPTIONS.find(o => o.id === state.s8eChoice) : null;
+  const s8eBlock = s8eChosen
+    ? `<p style="margin-top:10px;"><strong>The silent archive:</strong></p>
+       <div class="card-note">Group selected: "${esc(s8eChosen.text)}"</div>`
+    : `<p style="margin-top:10px;"><strong>The silent archive:</strong></p>
+       <div class="card-note">(no answer recorded)</div>`;
+
+  // 8F — what just happened?
+  const s8fV = state.s8fVariant ? S8F_VIGNETTES.find(x => x.id === state.s8fVariant) : null;
+  const s8fChosen = (s8fV && state.s8fChoice) ? s8fV.options.find(o => o.id === state.s8fChoice) : null;
+  const s8fBlock = s8fV
+    ? `<p style="margin-top:10px;"><strong>"What just happened?" — ${esc(s8fV.title)}:</strong></p>
+       <div class="card-note">${s8fChosen ? 'Group selected: "' + esc(s8fChosen.text) + '"' : '(no answer recorded)'}</div>`
+    : '';
+
+  // Stage 8 — conference critique (gender)
+  const s8gBiggestObj = state.s8gBiggest ? S8G_BLIND_SPOTS.find(b => b.id === state.s8gBiggest) : null;
+  const s8gOthersObjs = state.s8gFlagged.filter(id => id !== state.s8gBiggest).map(id => S8G_BLIND_SPOTS.find(b => b.id === id));
+
+  // Stage 8 — positionality (team)
+  const s8posTeam = state.s8posPool.map(id => S8POS_PROFILES.find(p => p.id === id));
+  const s8posKey  = [...state.s8posPool].sort().join('+');
+  const s8posNote = (s8posTeam.length === 2 && S8POS_PAIR_FEEDBACK[s8posKey]) ? S8POS_PAIR_FEEDBACK[s8posKey] : null;
+
+  return { ivDef, ratingBlocks, s4Ind, mechName, s6Inds, s8Blocks, s8eBlock, s8fBlock, s8eChosen, s8fV, s8fChosen, s4PoolBlock, s4Resps, s8posTeam, s8posNote, s8gBiggestObj, s8gOthersObjs };
+}
+
+function buildSummary() {
+  const { ivDef, ratingBlocks, s4Ind, mechName, s6Inds, s8Blocks, s8eBlock, s8fBlock, s8eChosen, s8fV, s8fChosen, s4PoolBlock, s4Resps, s8posTeam, s8posNote, s8gBiggestObj, s8gOthersObjs } = summaryHTMLBlocks();
+  document.getElementById('summary-body').innerHTML = `
+    <div class="card card-accent">
+      <h3>Stage 1 — Theory</h3>
+      <p><strong>IV definition (selected):</strong> ${ivDef ? esc(ivDef.text) + (ivDef.correct ? ' <em>(strong choice)</em>' : ' <em>(weaker choice)</em>') : '—'}</p>
+      <p><strong>Your causal diagram:</strong></p>
+      ${liveDiagramReadOnlyHTML()}
+    </div>
+
+    <div class="card card-accent">
+      <h3>Stage 2–3 — IV indicators and ratings</h3>
+      ${ratingBlocks || '<p>(no indicators selected)</p>'}
+    </div>
+
+    <div class="card card-accent">
+      <h3>Stage 4 — Interview pool</h3>
+      <p><em>Indicator: share of rebel food and supplies provided by local civilians rather than external sponsors or looting.</em></p>
+      ${s4PoolBlock}
+    </div>
+
+    <div class="card card-accent">
+      <h3>Stage 5 — DV indicators</h3>
+      <p><strong>Indicator 1:</strong></p>
+      <div class="card-note">${esc(state.s5Ind1) || '(no answer recorded)'}</div>
+      <p><strong>Indicator 2:</strong></p>
+      <div class="card-note">${esc(state.s5Ind2) || '(no answer recorded)'}</div>
+    </div>
+
+    <div class="card card-accent">
+      <h3>Stage 6 — Mechanism indicators</h3>
+      <p><strong>Focus:</strong> ${esc(mechName)}</p>
+      ${s6Inds.length ? '<ul>' + s6Inds.map(o => `<li>${esc(o.text)}</li>`).join('') + '</ul>' : '<p>(no indicators selected)</p>'}
+    </div>
+
+    <div class="card card-accent">
+      <h3>Stage 7 — Positionality (your team)</h3>
+      ${s8posTeam.length
+        ? '<ul style="margin-left:20px;">' + s8posTeam.map(p => `<li>${esc(p.label)}</li>`).join('') + '</ul>'
+        : '<div class="card-note">(no team submitted)</div>'}
+      <p><strong>Group's reflection:</strong></p>
+      <div class="card-note">${esc(state.s8posReflect) || '(no answer recorded)'}</div>
+      ${s8posNote ? `<p><strong>Feedback on the pair:</strong></p><div class="card-note">${s8posNote}</div>` : ''}
+    </div>
+
+    <div class="card card-accent">
+      <h3>Stage 8 — Excerpts</h3>
+      <ul>${s8Blocks}</ul>
+      ${s8eBlock}
+      ${s8fBlock}
+    </div>
+
+    <div class="card card-accent">
+      <h3>Stage 8 — Conference critique (gender blind spots)</h3>
+      ${s8gBiggestObj
+        ? `<p><strong>Most consequential blind spot:</strong> ${esc(s8gBiggestObj.short)}.</p>
+           <div class="card-note">${s8gBiggestObj.explain}</div>
+           ${s8gOthersObjs.length
+             ? '<p style="margin-top:8px;"><strong>Other blind spots flagged:</strong></p><ul style="margin-left:20px;">' + s8gOthersObjs.map(b => `<li>${esc(b.short)}</li>`).join('') + '</ul>'
+             : ''}`
+        : '<div class="card-note">(no submission)</div>'}
+    </div>
+
+    <div class="card card-accent">
+      <h3>Stage 9 — Ethics: ${state.s9Variant ? esc(S9_VARIANTS[state.s9Variant].label) : '—'}</h3>
+      <div class="card-note">${esc(state.s9Response) || '(skipped or no answer recorded)'}</div>
+    </div>
+  `;
+}
+
+function downloadAnswers() {
+  const { ivDef, ratingBlocks, s4Ind, mechName, s6Inds, s8Blocks, s8eBlock, s8fBlock, s8eChosen, s8fV, s8fChosen, s4PoolBlock, s4Resps, s8posTeam, s8posNote, s8gBiggestObj, s8gOthersObjs } = summaryHTMLBlocks();
+  const date = new Date().toLocaleDateString('en-GB', {year:'numeric', month:'long', day:'numeric'});
+  const members = state.groupMembers.length ? state.groupMembers.join(', ') : '(not recorded)';
+  const ratingsForPrint = state.s2Selected.map((id, i) => {
+    const ind = S2_INDICATORS.find(o => o.id === id);
+    const r = state.s3Ratings[id] || {};
+    return `
+      <p><strong>Indicator ${i+1}:</strong> ${esc(ind.text)}</p>
+      <p>Certainty: ${r.certainty || '—'}/5 · Uniqueness: ${r.uniqueness || '—'}/5</p>
+      <p><em>Motivation:</em></p>
+      <div class="answer">${esc(r.motivation) || '(no answer recorded)'}</div>
+    `;
+  }).join('');
+  const s6PrintList = s6Inds.length ? '<ul>' + s6Inds.map(o => `<li>${esc(o.text)}</li>`).join('') + '</ul>' : '(no indicators selected)';
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>Seminar Notes — ${date}</title>
+<style>
+  body { font-family: Georgia, serif; font-size: 13px; line-height: 1.75; color: #111;
+         max-width: 700px; margin: 40px auto; padding: 0 24px; }
+  h1 { font-size: 19px; color: #1c1c1c; border-bottom: 2px solid #1c1c1c; padding-bottom: 8px; margin-bottom: 4px; }
+  .meta { color: #666; font-size: 11.5px; margin-bottom: 24px; }
+  h2 { font-size: 13px; font-weight: 700; color: #1c1c1c; margin: 24px 0 4px;
+       border-left: 3px solid #c08030; padding-left: 9px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .answer { background: #f6f3ec; border-left: 3px solid #c8b89c; padding: 8px 12px;
+            margin: 6px 0 12px; white-space: pre-wrap; font-size: 12.5px; }
+  ul { margin: 6px 0 12px 20px; }
+  hr { border: none; border-top: 1px solid #ddd; margin: 22px 0; }
+  .footer { color: #999; font-size: 11px; text-align: center; margin-top: 24px; }
+  @media print { body { margin: 20px; } }
+</style></head><body>
+<h1>The Art of Analyzing Evidence — Group notes</h1>
+<div class="meta">Date: ${date} &nbsp;|&nbsp; Group: ${esc(members)}</div>
+
+<h2>Stage 1 — Theory</h2>
+<p><strong>IV definition:</strong> ${ivDef ? esc(ivDef.text) + (ivDef.correct ? ' <em>(strong choice)</em>' : ' <em>(weaker choice)</em>') : '—'}</p>
+<p><strong>Your causal diagram:</strong></p>
+${liveDiagramPrintHTML()}
+
+<h2>Stage 2–3 — IV indicators and ratings</h2>
+${ratingsForPrint || '<p>(no indicators selected)</p>'}
+
+<h2>Stage 4 — Interview pool</h2>
+<p><em>Indicator: share of rebel food and supplies provided by local civilians rather than external sponsors or looting.</em></p>
+${s4Resps.length
+  ? '<p><strong>Group\'s chosen pool:</strong></p><ul>' + s4Resps.map(r => `<li>${esc(r.label)}</li>`).join('') + '</ul>'
+    + (state.s4Feedback
+        ? `<p><em>Composition: ${state.s4Feedback.coverageSize} of 4 categories covered${state.s4Feedback.covered && state.s4Feedback.covered.length ? ' (' + state.s4Feedback.covered.map(c => c.label.toLowerCase()).join(', ') + ')' : ''}${state.s4Feedback.ethicsPicks.length ? '; ' + state.s4Feedback.ethicsPicks.length + ' ethics flag' + (state.s4Feedback.ethicsPicks.length > 1 ? 's' : '') : ''}.</em></p>`
+        : '')
+  : '<div class="answer">(no pool submitted)</div>'}
+
+<h2>Stage 5 — DV indicators</h2>
+<p><strong>Indicator 1:</strong></p>
+<div class="answer">${esc(state.s5Ind1) || '(no answer recorded)'}</div>
+<p><strong>Indicator 2:</strong></p>
+<div class="answer">${esc(state.s5Ind2) || '(no answer recorded)'}</div>
+
+<h2>Stage 6 — Mechanism indicators</h2>
+<p><strong>Focus:</strong> ${esc(mechName)}</p>
+${s6PrintList}
+
+<h2>Stage 7 — Positionality (your team)</h2>
+${s8posTeam.length
+  ? '<ul>' + s8posTeam.map(p => `<li>${esc(p.label)}</li>`).join('') + '</ul>'
+  : '<div class="answer">(no team submitted)</div>'}
+<p><strong>Group\'s reflection:</strong></p>
+<div class="answer">${esc(state.s8posReflect) || '(no answer recorded)'}</div>
+${s8posNote ? `<p><strong>Feedback on the pair:</strong></p><div class="answer">${s8posNote}</div>` : ''}
+
+<h2>Stage 8 — Excerpts</h2>
+<ul>${s8Blocks}</ul>
+<p><strong>The silent archive:</strong></p>
+<div class="answer">${s8eChosen ? esc(s8eChosen.text) : '(no answer recorded)'}</div>
+${s8fV ? `<p><strong>"What just happened?" — ${esc(s8fV.title)}:</strong></p>
+<div class="answer">${s8fChosen ? esc(s8fChosen.text) : '(no answer recorded)'}</div>` : ''}
+
+<h2>Stage 8 — Conference critique (gender blind spots)</h2>
+${s8gBiggestObj
+  ? `<p><strong>Most consequential blind spot:</strong> ${esc(s8gBiggestObj.short)}.</p>
+     <div class="answer">${s8gBiggestObj.explain}</div>
+     ${s8gOthersObjs.length
+       ? '<p><strong>Other blind spots flagged:</strong></p><ul>' + s8gOthersObjs.map(b => `<li>${esc(b.short)}</li>`).join('') + '</ul>'
+       : ''}`
+  : '<div class="answer">(no submission)</div>'}
+
+<h2>Stage 9 — Ethics: ${state.s9Variant ? esc(S9_VARIANTS[state.s9Variant].label) : '—'}</h2>
+<div class="answer">${esc(state.s9Response) || '(skipped or no answer recorded)'}</div>
+
+<hr><div class="footer">The Art of Analyzing Evidence · Sebastian van Baalen</div>
+</body></html>`;
+  const win = window.open('', '_blank');
+  if (!win) { alert('Please allow pop-ups to download the summary.'); return; }
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 400);
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+function show(id) { const el = document.getElementById(id); if (el) el.classList.add('vis'); }
+function hide(id) { const el = document.getElementById(id); if (el) el.classList.remove('vis'); }
+</script>
+</body>
+</html>
