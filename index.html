@@ -54,6 +54,77 @@ body {
   box-shadow: 0 1px 6px rgba(44,40,32,0.07);
   padding: 10px 24px 8px;
 }
+
+/* Help button (top-right of question panels) + theory recap modal */
+.card-accent { position: relative; }
+.help-btn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-muted);
+  background: var(--card);
+  color: var(--text-muted);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--trans);
+  padding: 0;
+  z-index: 5;
+}
+.help-btn:hover { border-color: var(--primary); color: var(--primary); background: #f4f0e7; }
+.theory-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(20,20,20,0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.18s ease;
+}
+.theory-modal.vis { display: flex; }
+.theory-modal-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  max-width: 640px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 28px 32px 24px;
+  position: relative;
+}
+.theory-modal-card h3 { margin-bottom: 8px; color: var(--primary); }
+.theory-modal-card h4 {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin: 14px 0 4px;
+}
+.theory-modal-close {
+  position: absolute;
+  top: 10px; right: 14px;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+  color: var(--text-muted);
+  line-height: 1;
+}
+.theory-modal-close:hover { color: var(--primary); }
 #progress-label {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 10px;
@@ -689,6 +760,23 @@ hr.divider { border: none; border-top: 1px solid var(--border-light); margin: 24
 <!-- ============================================================
      PROGRESS BAR
      ============================================================ -->
+<!-- Theory recap modal (opened via the "?" button) -->
+<div class="theory-modal" id="theory-modal" onclick="closeTheoryHelpFromBackdrop(event)">
+  <div class="theory-modal-card">
+    <button class="theory-modal-close" type="button" aria-label="Close" onclick="closeTheoryHelp()">×</button>
+    <h3>Your study — a recap</h3>
+    <p>You are conducting a qualitative single-case study during a low-intensity phase of the conflict, several years after the last large-scale fighting, on the relationship between a rebel group's <strong>dependence on civilian support</strong> and the degree to which the rebels have exercised <strong>restraint</strong> in their interactions with civilians.</p>
+    <h4>The theory</h4>
+    <p>When rebel groups are highly dependent on civilian support, they are more likely to exhibit restraint. Two mechanisms are proposed:</p>
+    <ol style="margin:0 0 1rem 1.2rem;">
+      <li><strong>The cost of abuse rises.</strong> Dependence means civilians provide essential resources, shelter, intelligence, and legitimacy; abusing them undermines all of these. Rebels are therefore incentivised to behave well.</li>
+      <li><strong>Information improves.</strong> Dependence gives rebels closer ties to civilians, and therefore better information about who is loyal, neutral, or hostile. With better information, the need for indiscriminate violence decreases.</li>
+    </ol>
+    <h4>Your task</h4>
+    <p>To develop the <em>observable implications</em> of this theory — the things you would actually look for in the field or in the archives — and to consider how to find evidence of those indicators.</p>
+  </div>
+</div>
+
 <div id="progress-container">
   <div id="progress-label">Research progress</div>
   <div id="progress-track">
@@ -770,7 +858,7 @@ hr.divider { border: none; border-top: 1px solid var(--border-light); margin: 24
     </div>
     <div class="card card-accent">
       <h3>Your study</h3>
-      <p>You are conducting a qualitative single-case study on the relationship between a rebel group's <strong>dependence on civilian support</strong> and the degree to which the rebels exercise <strong>restraint</strong> in their interactions with civilians.</p>
+      <p>You are conducting a qualitative single-case study during a low-intensity phase of the conflict, several years after the last large-scale fighting, on the relationship between a rebel group's <strong>dependence on civilian support</strong> and the degree to which the rebels have exercised <strong>restraint</strong> in their interactions with civilians.</p>
       <p>The theory: when rebel groups are highly dependent on civilian support, they are more likely to exhibit restraint. Two mechanisms are proposed:</p>
       <ol style="margin:0 0 1rem 1.2rem;">
         <li><strong>The cost of abuse rises.</strong> Dependence means civilians provide essential resources, shelter, intelligence, and legitimacy; abusing them undermines all of these. Rebels are therefore incentivised to behave well.</li>
@@ -1148,7 +1236,7 @@ hr.divider { border: none; border-top: 1px solid var(--border-light); margin: 24
         <div class="card card-accent" style="margin-bottom:0;">
           <p>You presented your findings at an international conference last week. The discussion was lively — until, near the end, a gender scholar in the audience raised her hand and asked whether you had really thought about the gendered dynamics of any of this. Your first instinct was annoyance: another scholar pulling her own hobbyhorse into a paper that wasn't about that. You answered briefly and moved on.</p>
           <p>Sitting with the question on the flight home, you realised the critique cut more deeply than you had let yourself see in the room. It is one thing to insist your paper is about something else; it is another to ask honestly whether your analysis has gendered blind spots you simply did not see.</p>
-          <p class="muted">Below are eight places where gender could have mattered in this study. Honestly flag the ones your group <strong>did not adequately account for</strong> in your analysis — then mark the single omission you believe could have the biggest impact on your findings.</p>
+          <p class="muted">Below are six places where gender could have mattered in this study. Honestly flag the ones your group <strong>did not adequately account for</strong> in your analysis — then mark the single omission you believe could have the biggest impact on your findings.</p>
           <div class="sel-counter" style="margin-top:14px;">
             <div class="sel-count-badge" id="s8g-count">0</div>
             <span id="s8g-count-label">blind spots flagged</span>
@@ -1410,15 +1498,15 @@ const S8_EXCERPTS = [
     id: 'ex4',
     image: 'researcher.png',
     imageAlt: 'A researcher reading an archival document',
-    kind: 'Document · NGO report on selective violence, 2005',
-    text: '"Between January 2003 and June 2004, our team documented 47 killings in Belavir district that were attributed to [the rebel group]. Of these, 39 involved a single named victim or a small group; in 12 of those cases, relatives told our researchers that the deceased had previously been employed by the prefecture or had a sibling serving with the gendarmerie. Seven incidents involved between two and four victims, mostly unrelated to one another. One was a mass-casualty event in which fifteen people died after [the rebel group] opened fire during a market dispute."',
+    kind: 'Document · NGO report on rebel–civilian relations, 2005',
+    text: '"In the rural areas of Mariama Province, our researchers heard repeatedly from communities that [the rebel group] had not only refrained from looting but had, on occasion, contributed labour to civilian projects — village irrigation channels in 2002, harvest assistance in the spring of 2003. Several elders described fighters who had grown up in the area returning to help their own families and neighbouring households. In one village, a former combatant told our team: ‘How could we take from them? Half of us are their sons.’ Episodes of abuse did occur, but they were typically associated with newly recruited fighters from outside the immediate region."',
     options: [
-      { id: 'a', text: 'Evidence of the cost mechanism (mechanism 1).' },
-      { id: 'b', correct: true, text: 'Evidence of the information mechanism — selective rather than indiscriminate violence (mechanism 2).' },
-      { id: 'c', text: 'Evidence that rebels were not dependent on civilians.' },
-      { id: 'd', text: 'Evidence that the NGO was politically aligned with the rebels.' },
+      { id: 'a', text: 'Evidence that the cost of abuse was high for the rebels (mechanism 1).' },
+      { id: 'b', text: 'Evidence that the rebels had better information and targeted violence selectively (mechanism 2).' },
+      { id: 'c', correct: true, text: 'Evidence that rebel restraint was driven by solidarity with the civilian population.' },
+      { id: 'd', text: 'Evidence that the rebel group was internally divided between locally recruited and outside fighters.' },
     ],
-    explain: 'The bulk of the documented killings — 39 of 47, with a substantial share involving victims linked to the prefecture or the gendarmerie — fit the information-mechanism pattern: violence directed at named, identifiable targets rather than at the population at large. That said, the excerpt complicates an unambiguous read: the seven incidents with multiple unrelated victims and the market-shooting mass-casualty event do <em>not</em> obviously fit the selective-targeting story, so the overall picture is "mostly selective, with exceptions worth explaining."',
+    explain: 'The excerpt is harder to read against the two mechanisms in your theory. Both the cost mechanism (1) and the information mechanism (2) predict that rebels will refrain from abusing civilians under certain conditions — neither predicts fighters contributing labour to civilian projects or describing civilians in kinship terms. The phrase "Half of us are their sons" and the regional / outsider contrast point instead toward solidarity and shared identity as the source of restraint. Internal division (option d) is visible in the excerpt, but that is a feature of the group rather than an explanation of its behaviour. This is the kind of evidence that should make you pause and ask whether your theory is the only one consistent with what you are seeing.',
   },
 ];
 
@@ -1559,6 +1647,26 @@ function onEnterScreen(id) {
   if (id === 'screen-s8g') buildS8G();
   if (id === 'screen-s9')  buildS9();
   if (id === 'screen-summary') buildSummary();
+  injectHelpButtons(id);
+}
+
+/* Inject a "?" help button into each question panel of working screens. */
+function injectHelpButtons(id) {
+  const EXCLUDED = ['screen-learning-outcomes', 'screen-group', 'screen-intro', 'screen-summary'];
+  if (EXCLUDED.includes(id)) return;
+  const screen = document.getElementById(id);
+  if (!screen) return;
+  screen.querySelectorAll('.card-accent').forEach(card => {
+    if (card.querySelector(':scope > .help-btn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'help-btn';
+    btn.type = 'button';
+    btn.title = 'Recap of the study';
+    btn.setAttribute('aria-label', 'Recap of the study');
+    btn.textContent = '?';
+    btn.addEventListener('click', openTheoryHelp);
+    card.appendChild(btn);
+  });
 }
 
 /* ============================================================
@@ -2122,7 +2230,7 @@ const S8POS_PROFILES = [
     desc: 'Based at a national NGO that ran protection programmes for civilian survivors during the conflict. The NGO is widely trusted by survivors.' },
   { id: 'officer',
     label: 'Retired army officer doing a PhD',
-    desc: 'Served as a junior officer in the Swedish army of a Western, in a unit posted to the eastern districts. Now a PhD candidate at the staff college; mid-career, no language gap.' },
+    desc: 'Served as a junior officer in the national army during the conflict, in a unit posted to the eastern districts. Now retired and doing a PhD at the staff college; mid-career, no language gap.' },
 ];
 
 const S8POS_PAIR_FEEDBACK = {
@@ -2409,15 +2517,9 @@ const S8G_BLIND_SPOTS = [
   { id: 'cost',     short: 'The cost mechanism',
     text: 'Does the cost-of-abuse logic still hold if some abuses (SGBV especially) are concealed from outside observers and therefore do not trigger the loss of civilian support the mechanism relies on?',
     explain: 'The mechanism assumes abuse is observed and punished by withdrawal of support. SGBV is often hidden, normalised, or punished only against victims. The mechanism may systematically underpredict abuse of women, even where civilian dependence is high.' },
-  { id: 'info',     short: 'The information mechanism',
-    text: 'Did the analysis recognise that women often act as informants — because of gendered patterns of movement, market access, and household networks that men do not have?',
-    explain: 'Women\'s mobility, social networks, and structural roles in households often make them the primary source of fine-grained intelligence in civilian–rebel relationships. A gender-blind analysis routinely undercounts this channel and the women who staff it.' },
   { id: 'pool',     short: 'The interview pool',
     text: 'Was your interview pool skewed toward men — commanders, fighters, officers, donors, traders — without deliberately seeking women respondents?',
     explain: 'Most of the obvious respondent groups in this case are male-coded. Without deliberately including women among your respondents (and naming them as such in the design), the evidence you collect is already filtered through a male lens before you read a single transcript.' },
-  { id: 'team',     short: 'Your research team',
-    text: 'Did your team\'s own gender composition shape what informants would say to them — particularly on topics like SGBV, family life, or women\'s wartime roles?',
-    explain: 'Female fighters, civilian survivors of SGBV, and women in former conflict areas are routinely more willing to speak to women researchers about gendered experiences. The team you assembled may have foreclosed conversations before they could start.' },
   { id: 'archive',  short: 'The silent archive',
     text: 'When you found no manuals on conduct toward civilians, did you ask whether rules about gendered behaviours (SGBV, marriage, sexual conduct, women\'s movement) were codified separately, transmitted only orally, or never written at all?',
     explain: 'Many armed groups have explicit oral norms about women — marriage, sexual access, dress, movement — that never reach the written record. An "empty" archive on civilian conduct may not be empty on gender, if you had known to ask differently.' },
@@ -2890,6 +2992,14 @@ ${s8gBiggestObj
    ============================================================ */
 function show(id) { const el = document.getElementById(id); if (el) el.classList.add('vis'); }
 function hide(id) { const el = document.getElementById(id); if (el) el.classList.remove('vis'); }
+
+/* Theory recap modal */
+function openTheoryHelp()  { document.getElementById('theory-modal').classList.add('vis'); }
+function closeTheoryHelp() { document.getElementById('theory-modal').classList.remove('vis'); }
+function closeTheoryHelpFromBackdrop(e) { if (e.target.id === 'theory-modal') closeTheoryHelp(); }
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeTheoryHelp();
+});
 </script>
 </body>
 </html>
